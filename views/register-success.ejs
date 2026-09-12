@@ -1,0 +1,10 @@
+<%- include('partials/header') %>
+<div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 text-center">
+  <div class="text-5xl mb-4">✅</div>
+  <h1 class="text-2xl font-bold mb-2">ثبت‌نام موفق</h1>
+  <p class="mb-4">کد کاربری شما:</p>
+  <div class="text-3xl font-mono font-bold text-blue-700 bg-blue-50 py-3 rounded-lg mb-6"><%= user_code %></div>
+  <p class="text-sm text-gray-600 mb-4">این کد را ذخیره کنید. ادمین با این کد شما را پیدا می‌کند.</p>
+  <a href="/login" class="bg-blue-600 text-white px-6 py-2 rounded-lg inline-block"><%= t('login') %></a>
+</div>
+<%- include('partials/footer') %>

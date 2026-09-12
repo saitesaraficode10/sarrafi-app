@@ -1,0 +1,35 @@
+<%- include('partials/header') %>
+<div class="text-center mb-8">
+  <h1 class="text-3xl font-bold text-blue-800 mb-2"><%= t('welcome') %></h1>
+  <p class="text-gray-600"><%= t('rates') %></p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <% rates.forEach(r => { 
+    const [from, to] = r.pair.split('_');
+  %>
+  <div class="bg-white rounded-xl shadow p-4 border border-blue-100">
+    <div class="text-sm text-gray-500 mb-1"><%= from %> → <%= to %></div>
+    <div class="flex justify-between items-center">
+      <div>
+        <div class="text-xs text-green-600"><%= t('buy') %></div>
+        <div class="font-bold text-lg"><%= Number(r.buy_rate).toLocaleString(undefined, {maximumFractionDigits: 6}) %></div>
+      </div>
+      <div class="text-left">
+        <div class="text-xs text-red-600"><%= t('sell') %></div>
+        <div class="font-bold text-lg"><%= Number(r.sell_rate).toLocaleString(undefined, {maximumFractionDigits: 6}) %></div>
+      </div>
+    </div>
+    <div class="text-xs text-gray-400 mt-2">منبع: <%= r.source %> | <%= r.updated_at %></div>
+  </div>
+  <% }) %>
+</div>
+
+<div class="bg-blue-50 rounded-xl p-6 text-center">
+  <p class="mb-4">برای شروع معامله ثبت‌نام کنید یا وارد شوید</p>
+  <div class="flex justify-center gap-4">
+    <a href="/register" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"><%= t('register') %></a>
+    <a href="/login" class="bg-white border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50"><%= t('login') %></a>
+  </div>
+</div>
+<%- include('partials/footer') %>

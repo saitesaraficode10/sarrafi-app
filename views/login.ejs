@@ -1,0 +1,18 @@
+<%- include('partials/header') %>
+<div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
+  <h1 class="text-2xl font-bold mb-6 text-center"><%= t('login') %></h1>
+  <% if (error) { %><div class="bg-red-100 text-red-700 p-3 rounded mb-4"><%= error %></div><% } %>
+  <form method="POST" action="/login" class="space-y-4">
+    <div>
+      <label class="block text-sm mb-1"><%= t('phone') %></label>
+      <input type="text" name="phone_am" required class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm mb-1"><%= t('password') %></label>
+      <input type="password" name="password" required class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"><%= t('login') %></button>
+  </form>
+  <p class="text-center mt-4 text-sm">حساب ندارید؟ <a href="/register" class="text-blue-600"><%= t('register') %></a></p>
+</div>
+<%- include('partials/footer') %>

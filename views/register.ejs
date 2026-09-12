@@ -1,0 +1,33 @@
+<%- include('partials/header') %>
+<div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
+  <h1 class="text-2xl font-bold mb-6 text-center"><%= t('register') %></h1>
+  <% if (error) { %><div class="bg-red-100 text-red-700 p-3 rounded mb-4"><%= error %></div><% } %>
+  <form method="POST" action="/register" enctype="multipart/form-data" class="space-y-4">
+    <div>
+      <label class="block text-sm mb-1"><%= t('first_name') %> *</label>
+      <input type="text" name="first_name" required class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm mb-1"><%= t('last_name') %> *</label>
+      <input type="text" name="last_name" required class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm mb-1"><%= t('phone') %> *</label>
+      <input type="text" name="phone_am" required placeholder="+374..." class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm mb-1"><%= t('whatsapp') %></label>
+      <input type="text" name="whatsapp" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm mb-1"><%= t('passport') %> *</label>
+      <input type="file" name="passport" accept="image/*,.pdf" required class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm mb-1"><%= t('password') %> *</label>
+      <input type="password" name="password" required minlength="6" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"><%= t('submit') %></button>
+  </form>
+</div>
+<%- include('partials/footer') %>
