@@ -1,0 +1,42 @@
+<%- include('../partials/header') %>
+<div class="flex justify-between items-center mb-6">
+  <h1 class="text-2xl font-bold">سفارش‌های تحویل درام نقدی</h1>
+  <a href="/admin" class="text-blue-600">← داشبورد</a>
+</div>
+<div class="flex gap-2 mb-4 flex-wrap">
+  <a href="/admin/cash-in" class="px-3 py-1 rounded <%= !status ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">همه</a>
+  <a href="/admin/cash-in?status=pending" class="px-3 py-1 rounded <%= status==='pending' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">در انتظار</a>
+  <a href="/admin/cash-in?status=processing" class="px-3 py-1 rounded <%= status==='processing' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">در حال واریز</a>
+  <a href="/admin/cash-in?status=completed" class="px-3 py-1 rounded <%= status==='completed' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">تکمیل</a>
+  <a href="/admin/cash-in?status=cancelled" class="px-3 py-1 rounded <%= status==='cancelled' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">لغو</a>
+</div>
+<div class="overflow-x-auto bg-white rounded-xl shadow">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100"><tr>
+      <th class="p-3 text-right">کد</th>
+      <th class="p-3 text-right">کاربر</th>
+      <th class="p-3 text-right">درام</th>
+      <th class="p-3 text-right">تومان</th>
+      <th class="p-3 text-right">شبا/کارت</th>
+      <th class="p-3 text-right">وضعیت</th>
+      <th class="p-3"></th>
+    </tr></thead>
+    <tbody>
+      <% if (!orders || orders.length === 0) { %>
+        <tr><td colspan="7" class="p-4 text-center text-gray-500">موردی نیست</td></tr>
+      <% } %>
+      <% (orders || []).forEach(o => { %>
+      <tr class="border-t">
+        <td class="p-3 font-mono"><%= o.order_code %></td>
+        <td class="p-3"><%= o.first_name %> <%= o.last_name %> (<%= o.user_code %>)</td>
+        <td class="p-3"><%= Number(o.amount_amd).toLocaleString() %></td>
+        <td class="p-3"><%= Number(o.amount_toman).toLocaleString() %></td>
+        <td class="p-3 font-mono text-xs"><%= o.iran_card_or_sheba %></td>
+        <td class="p-3"><%= o.status %></td>
+        <td class="p-3"><a href="/admin/cash-in/<%= o.order_code %>" class="text-blue-600">مدیریت</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,66 @@
+<%- include('../partials/header') %>
+<div class="mb-4"><a href="/admin/transactions" class="text-blue-600">← تراکنش‌ها</a></div>
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h1 class="text-xl font-bold mb-4">تراکنش <%= tx.transaction_code %></h1>
+  <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+    <div>کاربر: <a href="/admin/user/<%= tx.user_code %>" class="text-blue-600"><%= tx.first_name %> <%= tx.last_name %> (<%= tx.user_code %>)</a></div>
+    <div>تلفن: <%= tx.phone_am %> | واتساپ: <%= tx.whatsapp || '-' %></div>
+    <div>جفت: <%= tx.pair %></div>
+    <div>نرخ استفاده شده: <%= tx.rate_used %></div>
+    <div>مبلغ از: <%= tx.amount_from %> <%= tx.from_currency %></div>
+    <div>مبلغ به: <%= Number(tx.amount_to).toLocaleString() %> <%= tx.to_currency %></div>
+    <div>بانک: <%= tx.bank_name %></div>
+    <div>وضعیت فعلی: <strong><%= tx.status %></strong></div>
+    <% if (tx.pickup_time) { %><div class="col-span-2">زمان مراجعه: <%= tx.pickup_time %></div><% } %>
+  </div>
+  <% if (tx.receipt_path) { %>
+  <a href="<%= tx.receipt_path %>" target="_blank" class="inline-block bg-gray-700 text-white px-4 py-2 rounded text-sm mb-4">مشاهده رسید واریز</a>
+  <% } %>
+</div>
+
+<% if (tx.declaration_filled) { %>
+<div class="bg-amber-50 border border-amber-200 rounded-xl shadow p-6 mb-6">
+  <h2 class="font-bold mb-3 text-amber-900">اعلامیه تکمیل‌شده توسط مشتری</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+    <div>شماره ملی: <strong class="font-mono"><%= tx.national_id %></strong></div>
+    <div>تاریخ واریز: <strong><%= tx.deposit_date %></strong></div>
+    <div>از حساب: <strong><%= tx.from_account_name %></strong></div>
+    <div>نام واریزکننده و تاریخ: <strong><%= tx.depositor_name_date %></strong></div>
+    <div>شماره رهگیری: <strong class="font-mono"><%= tx.tracking_number %></strong></div>
+    <div>تاریخ دریافت مبلغ: <strong><%= tx.receive_date %></strong></div>
+  </div>
+  <p class="text-xs text-gray-500 mt-3">مشتری پس از تکمیل اعلامیه می‌تواند نسخه چاپی آن را از پنل خود دریافت کند.</p>
+</div>
+<% } else if (tx.receipt_path) { %>
+<div class="bg-yellow-50 border border-yellow-300 rounded-xl p-4 mb-6 text-sm">
+  ⚠ رسید آپلود شده ولی اعلامیه هنوز تکمیل نشده است (وضعیت: <%= tx.status %>).
+</div>
+<% } %>
+
+<div class="bg-white rounded-xl shadow p-6">
+  <h2 class="font-bold mb-4">به‌روزرسانی وضعیت</h2>
+  <form method="POST" action="/admin/transaction/<%= tx.transaction_code %>/update" class="space-y-4">
+    <div>
+      <label class="block text-sm mb-1">وضعیت</label>
+      <select name="status" class="w-full border rounded-lg px-3 py-2">
+        <option value="pending_payment" <%= tx.status==='pending_payment'?'selected':'' %>>در انتظار واریز</option>
+        <option value="pending_declaration" <%= tx.status==='pending_declaration'?'selected':'' %>>در انتظار اعلامیه</option>
+        <option value="pending_review" <%= tx.status==='pending_review'?'selected':'' %>>در حال بررسی (اعلامیه ثبت شد)</option>
+        <option value="ready_pickup" <%= tx.status==='ready_pickup'?'selected':'' %>>آماده دریافت در دفتر</option>
+        <option value="completed" <%= tx.status==='completed'?'selected':'' %>>تکمیل شده</option>
+        <option value="cancelled" <%= tx.status==='cancelled'?'selected':'' %>>لغو شده</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm mb-1">زمان مراجعه به دفتر (مثلاً ۱۴۰۴/۰۶/۰۵ ساعت ۱۴:۰۰)</label>
+      <input type="text" name="pickup_time" value="<%= tx.pickup_time || '' %>" class="w-full border rounded-lg px-3 py-2" placeholder="تاریخ و ساعت — فقط پس از تأیید اعلامیه">
+      <p class="text-xs text-gray-500 mt-1">پس از تکمیل اعلامیه توسط مشتری و بررسی شما، زمان مراجعه را وارد کنید.</p>
+    </div>
+    <div>
+      <label class="block text-sm mb-1">یادداشت ادمین</label>
+      <textarea name="admin_note" class="w-full border rounded-lg px-3 py-2" rows="2"><%= tx.admin_note || '' %></textarea>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg">ذخیره</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

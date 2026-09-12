@@ -1,0 +1,33 @@
+<%- include('../partials/header') %>
+<div class="flex justify-between items-center mb-6">
+  <h1 class="text-2xl font-bold">تراکنش‌ها</h1>
+  <a href="/admin" class="text-blue-600">← داشبورد</a>
+</div>
+<div class="flex gap-2 mb-4 flex-wrap">
+  <a href="/admin/transactions" class="px-3 py-1 rounded <%= !status ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">همه</a>
+  <a href="/admin/transactions?status=pending_payment" class="px-3 py-1 rounded <%= status==='pending_payment' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">در انتظار واریز</a>
+  <a href="/admin/transactions?status=pending_declaration" class="px-3 py-1 rounded <%= status==='pending_declaration' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">در انتظار اعلامیه</a>
+  <a href="/admin/transactions?status=pending_review" class="px-3 py-1 rounded <%= status==='pending_review' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">در بررسی</a>
+  <a href="/admin/transactions?status=ready_pickup" class="px-3 py-1 rounded <%= status==='ready_pickup' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">آماده دریافت</a>
+  <a href="/admin/transactions?status=completed" class="px-3 py-1 rounded <%= status==='completed' ? 'bg-blue-600 text-white' : 'bg-gray-200' %>">تکمیل</a>
+</div>
+<div class="overflow-x-auto bg-white rounded-xl shadow">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100"><tr>
+      <th class="p-3 text-right">کد</th><th class="p-3 text-right">کاربر</th><th class="p-3 text-right">جفت</th><th class="p-3 text-right">مبلغ</th><th class="p-3 text-right">وضعیت</th><th class="p-3"></th>
+    </tr></thead>
+    <tbody>
+      <% txs.forEach(tx => { %>
+      <tr class="border-t">
+        <td class="p-3 font-mono"><%= tx.transaction_code %></td>
+        <td class="p-3"><%= tx.first_name %> <%= tx.last_name %> (<%= tx.user_code %>)</td>
+        <td class="p-3"><%= tx.pair %></td>
+        <td class="p-3"><%= tx.amount_from %></td>
+        <td class="p-3"><%= tx.status %></td>
+        <td class="p-3"><a href="/admin/transaction/<%= tx.transaction_code %>" class="text-blue-600">مدیریت</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

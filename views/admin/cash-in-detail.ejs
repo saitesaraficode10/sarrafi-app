@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<div class="mb-4"><a href="/admin/cash-in" class="text-blue-600">← لیست سفارش‌ها</a></div>
+
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h1 class="text-xl font-bold mb-4">سفارش <%= order.order_code %></h1>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+    <div>کاربر: <a href="/admin/user/<%= order.user_code %>" class="text-blue-600"><%= order.first_name %> <%= order.last_name %> (<%= order.user_code %>)</a></div>
+    <div>تلفن: <%= order.phone_am %> | واتساپ: <%= order.whatsapp || '-' %></div>
+    <div>مبلغ درام: <strong><%= Number(order.amount_amd).toLocaleString() %></strong></div>
+    <div>معادل تومان: <strong><%= Number(order.amount_toman).toLocaleString() %></strong></div>
+    <div>تاریخ تحویل: <%= order.delivery_date %> ساعت <%= order.delivery_time %></div>
+    <div>وضعیت: <strong><%= order.status %></strong></div>
+    <div class="md:col-span-2">بانک: <strong><%= order.iran_bank_name %></strong> — به نام: <strong><%= order.iran_account_holder %></strong></div>
+    <div class="md:col-span-2">کارت/شبا: <strong class="font-mono text-lg"><%= order.iran_card_or_sheba %></strong></div>
+  </div>
+  <div class="mt-4">
+    <a href="/cash-in/receipt/<%= order.order_code %>" target="_blank" class="text-sm text-blue-600 underline">مشاهده رسید اعلام مشتری</a>
+    <p class="text-xs text-gray-500 mt-1">(توجه: لینک رسید فقط برای خود کاربر با لاگین کار می‌کند؛ برای چاپ از پنل کاربر استفاده شود یا اطلاعات بالا کافی است)</p>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl shadow p-6">
+  <h2 class="font-bold mb-4">به‌روزرسانی وضعیت</h2>
+  <form method="POST" action="/admin/cash-in/<%= order.order_code %>/update" class="space-y-4">
+    <div>
+      <label class="block text-sm mb-1">وضعیت</label>
+      <select name="status" class="w-full border rounded-lg px-3 py-2">
+        <option value="pending" <%= order.status==='pending'?'selected':'' %>>در انتظار (pending)</option>
+        <option value="processing" <%= order.status==='processing'?'selected':'' %>>در حال واریز (processing)</option>
+        <option value="completed" <%= order.status==='completed'?'selected':'' %>>تکمیل شده — واریز انجام شد</option>
+        <option value="cancelled" <%= order.status==='cancelled'?'selected':'' %>>لغو شده</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm mb-1">یادداشت ادمین</label>
+      <textarea name="admin_note" class="w-full border rounded-lg px-3 py-2" rows="3"><%= order.admin_note || '' %></textarea>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg">ذخیره</button>
+  </form>
+</div>
+<%- include('../partials/footer') %>

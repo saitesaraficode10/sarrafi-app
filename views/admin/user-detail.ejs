@@ -1,0 +1,36 @@
+<%- include('../partials/header') %>
+<div class="mb-4"><a href="/admin/users" class="text-blue-600">← کاربران</a></div>
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+  <h1 class="text-2xl font-bold mb-4"><%= user.first_name %> <%= user.last_name %></h1>
+  <div class="grid grid-cols-2 gap-3 text-sm">
+    <div>کد: <strong class="font-mono"><%= user.user_code %></strong></div>
+    <div>تلفن: <%= user.phone_am %></div>
+    <div>واتساپ: <%= user.whatsapp || '-' %></div>
+    <div>تاریخ ثبت: <%= user.created_at %></div>
+  </div>
+  <% if (user.passport_path) { %>
+  <div class="mt-4">
+    <a href="<%= user.passport_path %>" target="_blank" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">مشاهده پاسپورت / کارت اقامت</a>
+  </div>
+  <% } %>
+</div>
+<h2 class="text-xl font-semibold mb-3">تراکنش‌های این کاربر</h2>
+<div class="overflow-x-auto bg-white rounded-xl shadow">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-100"><tr>
+      <th class="p-3 text-right">کد</th><th class="p-3 text-right">جفت</th><th class="p-3 text-right">مبلغ</th><th class="p-3 text-right">وضعیت</th><th class="p-3"></th>
+    </tr></thead>
+    <tbody>
+      <% txs.forEach(tx => { %>
+      <tr class="border-t">
+        <td class="p-3 font-mono"><%= tx.transaction_code %></td>
+        <td class="p-3"><%= tx.pair %></td>
+        <td class="p-3"><%= tx.amount_from %> → <%= Number(tx.amount_to).toLocaleString() %></td>
+        <td class="p-3"><%= tx.status %></td>
+        <td class="p-3"><a href="/admin/transaction/<%= tx.transaction_code %>" class="text-blue-600">جزئیات</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

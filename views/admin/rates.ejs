@@ -1,0 +1,28 @@
+<%- include('../partials/header') %>
+<div class="flex justify-between items-center mb-6">
+  <h1 class="text-2xl font-bold">مدیریت نرخ‌ها</h1>
+  <div class="flex gap-2">
+    <form method="POST" action="/admin/rates/refresh"><button class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">به‌روزرسانی از API</button></form>
+    <a href="/admin" class="text-blue-600 self-center">← داشبورد</a>
+  </div>
+</div>
+<div class="space-y-4">
+  <% rates.forEach(r => { %>
+  <form method="POST" action="/admin/rates/update" class="bg-white rounded-xl shadow p-4 flex flex-wrap items-end gap-4">
+    <input type="hidden" name="pair" value="<%= r.pair %>">
+    <div class="font-mono font-bold w-28"><%= r.pair %></div>
+    <div>
+      <label class="text-xs text-gray-500">خرید</label>
+      <input type="number" step="any" name="buy_rate" value="<%= r.buy_rate %>" class="border rounded px-2 py-1 w-32">
+    </div>
+    <div>
+      <label class="text-xs text-gray-500">فروش</label>
+      <input type="number" step="any" name="sell_rate" value="<%= r.sell_rate %>" class="border rounded px-2 py-1 w-32">
+    </div>
+    <div class="text-xs text-gray-400"><%= r.source %> | <%= r.is_manual ? 'دستی' : 'API' %> | <%= r.updated_at %></div>
+    <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">ذخیره دستی</button>
+  </form>
+  <% }) %>
+</div>
+<p class="text-sm text-gray-500 mt-4">با ذخیره دستی، نرخ دیگر از API به‌روز نمی‌شود تا زمانی که دوباره از API رفرش کنید (فقط نرخ‌های غیر دستی به‌روز می‌شوند).</p>
+<%- include('../partials/footer') %>
