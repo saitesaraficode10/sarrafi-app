@@ -1,0 +1,71 @@
+<%- include('../partials/header') %>
+<h1 class="text-2xl font-bold mb-2"><%= t('welcome') %>، <%= user.first_name %></h1>
+<p class="text-gray-600 mb-6">کد کاربری شما: <span class="font-mono font-bold text-blue-700"><%= user.user_code %></span></p>
+
+<div class="flex flex-wrap gap-3 mb-8">
+  <a href="/new-order" class="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700"><%= t('new_order') %></a>
+  <a href="/cash-in" class="bg-amber-600 text-white px-5 py-2 rounded-lg hover:bg-amber-700">تحویل درام نقدی → واریز ریال</a>
+</div>
+
+<h2 class="text-xl font-semibold mb-4"><%= t('my_orders') %> (خرید ارز)</h2>
+<div class="overflow-x-auto mb-10">
+  <table class="w-full bg-white rounded-xl shadow text-sm">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="p-3 text-right">کد</th>
+        <th class="p-3 text-right">جفت ارز</th>
+        <th class="p-3 text-right">مبلغ</th>
+        <th class="p-3 text-right"><%= t('status') %></th>
+        <th class="p-3 text-right">تاریخ</th>
+        <th class="p-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!txs || txs.length === 0) { %>
+        <tr><td colspan="6" class="p-4 text-center text-gray-500">هنوز سفارشی ندارید</td></tr>
+      <% } %>
+      <% (txs || []).forEach(tx => { %>
+      <tr class="border-t">
+        <td class="p-3 font-mono"><%= tx.transaction_code %></td>
+        <td class="p-3"><%= tx.pair %></td>
+        <td class="p-3"><%= tx.amount_from %> → <%= Number(tx.amount_to).toLocaleString() %></td>
+        <td class="p-3"><%= t(tx.status) || tx.status %></td>
+        <td class="p-3"><%= tx.created_at %></td>
+        <td class="p-3"><a href="/order/<%= tx.transaction_code %>" class="text-blue-600">جزئیات</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<h2 class="text-xl font-semibold mb-4">سفارش‌های تحویل درام نقدی</h2>
+<div class="overflow-x-auto">
+  <table class="w-full bg-white rounded-xl shadow text-sm">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="p-3 text-right">کد</th>
+        <th class="p-3 text-right">مبلغ درام</th>
+        <th class="p-3 text-right">معادل تومان</th>
+        <th class="p-3 text-right">تاریخ تحویل</th>
+        <th class="p-3 text-right">وضعیت</th>
+        <th class="p-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!cashIns || cashIns.length === 0) { %>
+        <tr><td colspan="6" class="p-4 text-center text-gray-500">هنوز سفارشی ندارید</td></tr>
+      <% } %>
+      <% (cashIns || []).forEach(o => { %>
+      <tr class="border-t">
+        <td class="p-3 font-mono"><%= o.order_code %></td>
+        <td class="p-3"><%= Number(o.amount_amd).toLocaleString() %></td>
+        <td class="p-3"><%= Number(o.amount_toman).toLocaleString() %></td>
+        <td class="p-3"><%= o.delivery_date %> <%= o.delivery_time %></td>
+        <td class="p-3"><%= o.status %></td>
+        <td class="p-3"><a href="/cash-in/receipt/<%= o.order_code %>" class="text-blue-600">مشاهده رسید</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>
