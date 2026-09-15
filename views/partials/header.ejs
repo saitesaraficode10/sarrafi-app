@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= dir %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | <%= t('site_name') %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+  <style>
+    body { font-family: Vazirmatn, system-ui, sans-serif; }
+    .rtl { direction: rtl; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen <%= dir === 'rtl' ? 'rtl' : '' %>">
+  <nav class="bg-blue-700 text-white shadow-lg">
+    <div class="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <a href="/" class="text-xl font-bold"><%= t('site_name') %></a>
+      <div class="flex items-center gap-3 flex-wrap">
+        <a href="/" class="hover:underline"><%= t('home') %></a>
+        <% if (typeof user !== 'undefined' && user) { %>
+          <a href="/dashboard" class="hover:underline"><%= t('dashboard') %></a>
+          <a href="/new-order" class="hover:underline"><%= t('new_order') %></a>
+          <a href="/cash-in" class="hover:underline">تحویل درام</a>
+          <a href="/logout" class="hover:underline"><%= t('logout') %></a>
+        <% } else { %>
+          <a href="/login" class="hover:underline"><%= t('login') %></a>
+          <a href="/register" class="bg-white text-blue-700 px-3 py-1 rounded hover:bg-blue-50"><%= t('register') %></a>
+        <% } %>
+        <div class="flex gap-1 text-sm">
+          <a href="/set-lang/fa" class="px-1 <%= lang==='fa'?'font-bold underline':'' %>">FA</a>
+          <a href="/set-lang/en" class="px-1 <%= lang==='en'?'font-bold underline':'' %>">EN</a>
+          <a href="/set-lang/ru" class="px-1 <%= lang==='ru'?'font-bold underline':'' %>">RU</a>
+          <a href="/set-lang/hy" class="px-1 <%= lang==='hy'?'font-bold underline':'' %>">HY</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="container mx-auto px-4 py-6">
