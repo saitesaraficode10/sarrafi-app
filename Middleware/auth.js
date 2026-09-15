@@ -1,51 +1,71 @@
 const jwt = require('jsonwebtoken');
 const db = require('../utils/db');
 
-function authUser(req, res, next) {
-  const token = req.cookies.token || (req.headers.authorization || '').replace('Bearer ', '');
-  if (!token) {
-    return res.redirect('/login');
-  }
+const JWT_SECRET = process.env.JWT_SECRET || 'sarrafi-demo-secret-key-change-in-production-32chars';
+
+function signUserToken(user) {
+  return jwt.sign(
+    { id: user.id, user_code: user.user_code, type: 'user' },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
+function signAdminToken(username) {
+  return jwt.sign(
+    { username, type: 'admin' },
+    JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+}
+
+function requireUser(req, res, next) {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== 'user') throw new Error('not user');
-    const user = db.prepare('SELECT id, user_code, first_name, last_name, phone_am FROM users WHERE id = ?').get(decoded.id);
-    if (!user) throw new Error('user not found');
+    const token = req.cookies?.token || (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) {
+      return res.redirect('/login');
+    }
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload.type !== 'user') {
+      return res.redirect('/login');
+    }
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id);
+    if (!user) {
+      return res.redirect('/login');
+    }
     req.user = user;
     next();
   } catch (e) {
-    res.clearCookie('token');
     return res.redirect('/login');
   }
 }
 
-function authAdmin(req, res, next) {
-  const token = req.cookies.admin_token || (req.headers.authorization || '').replace('Bearer ', '');
-  if (!token) {
-    return res.redirect('/admin/login');
-  }
+function requireAdmin(req, res, next) {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== 'admin') throw new Error('not admin');
-    req.admin = { id: decoded.id, username: decoded.username };
+    const token = req.cookies?.admin_token || (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) {
+      return res.redirect('/admin/login');
+    }
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload.type !== 'admin') {
+      return res.redirect('/admin/login');
+    }
+    const u1 = process.env.ADMIN1_USERNAME || 'admin1';
+    const u2 = process.env.ADMIN2_USERNAME || 'admin2';
+    if (payload.username !== u1 && payload.username !== u2) {
+      return res.redirect('/admin/login');
+    }
+    req.admin = { username: payload.username };
     next();
   } catch (e) {
-    res.clearCookie('admin_token');
     return res.redirect('/admin/login');
   }
 }
 
-function optionalUser(req, res, next) {
-  const token = req.cookies.token;
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded.role === 'user') {
-        req.user = db.prepare('SELECT id, user_code, first_name, last_name FROM users WHERE id = ?').get(decoded.id);
-      }
-    } catch (e) {}
-  }
-  next();
-}
-
-module.exports = { authUser, authAdmin, optionalUser };
+module.exports = {
+  signUserToken,
+  signAdminToken,
+  requireUser,
+  requireAdmin,
+  JWT_SECRET
+};
