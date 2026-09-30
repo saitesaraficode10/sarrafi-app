@@ -11,7 +11,8 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 
 const db = require('./utils/db');
-const { updateRatesFromApi, getAllRates, getRate, setManualRate } = require('./utils/rates');
+const { updateRatesFromApi, getAllRates, getRate, setManualRate, ensureActivePairs } = require('./utils/rates');
+const { sendOtp, generateOtp } = require('./utils/sms');
 const { authUser, authAdmin, optionalUser } = require('./middleware/auth');
 
 const app = express();
@@ -100,30 +101,66 @@ app.get('/set-lang/:lang', (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  res.render('register', { error: null, title: 'ثبت‌نام' });
+  const a = Math.floor(Math.random() * 8) + 2;
+  const b = Math.floor(Math.random() * 8) + 2;
+  const token = require('crypto').randomBytes(8).toString('hex');
+  try {
+    db.prepare("INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, 'captcha', ?)").run(
+      token, String(a + b), new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    );
+  } catch (e) {}
+  res.render('register', {
+    error: null,
+    captchaToken: token,
+    captchaQuestion: `${a} + ${b}`,
+    title: 'ثبت‌نام'
+  });
 });
 
 app.post('/register', async (req, res) => {
+  const makeCaptcha = () => {
+    const a = Math.floor(Math.random() * 8) + 2;
+    const b = Math.floor(Math.random() * 8) + 2;
+    const token = require('crypto').randomBytes(8).toString('hex');
+    try {
+      db.prepare("INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, 'captcha', ?)").run(
+        token, String(a + b), new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      );
+    } catch (e) {}
+    return { captchaToken: token, captchaQuestion: `${a} + ${b}` };
+  };
   try {
     const first_name = String(req.body.first_name || '').trim();
     const last_name = String(req.body.last_name || '').trim();
     const phone_am = normalizePhone(req.body.phone_am);
     const whatsapp = normalizePhone(req.body.whatsapp) || null;
     const password = String(req.body.password || '');
+    const captchaToken = String(req.body.captcha_token || '');
+    const captchaAnswer = String(req.body.captcha_answer || '').trim();
+
+    const fail = (msg) => {
+      const c = makeCaptcha();
+      return res.render('register', { error: msg, title: 'ثبت‌نام', ...c });
+    };
+
     if (!first_name || !last_name || !phone_am || password.length < 6) {
-      return res.render('register', { error: 'نام، شماره ارمنی و رمز (حداقل ۶ کاراکتر) الزامی است', title: 'ثبت‌نام' });
+      return fail('نام، شماره ارمنی و رمز (حداقل ۶ کاراکتر) الزامی است');
     }
-    // Armenian numbers typically +374...
-    if (!/^\+?374\d{8}$/.test(phone_am) && !/^\+?374\d{6,10}$/.test(phone_am)) {
-      // soft check: must contain 374 or start with 0 local - still allow flexible
-      if (!phone_am.includes('374') && !phone_am.startsWith('0')) {
-        return res.render('register', { error: 'لطفاً شماره تماس ارمنی معتبر وارد کنید (مثلاً +374XXXXXXXX)', title: 'ثبت‌نام' });
-      }
+    if (!phone_am.includes('374') && !phone_am.startsWith('0')) {
+      return fail('لطفاً شماره تماس ارمنی معتبر وارد کنید (مثلاً +374XXXXXXXX)');
     }
 
-    const user_code = 'U' + Date.now().toString().slice(-8) + Math.floor(Math.random()*90+10);
+    const cap = db.prepare("SELECT * FROM otp_codes WHERE phone = ? AND purpose = 'captcha' AND used = 0 ORDER BY id DESC LIMIT 1").get(captchaToken);
+    if (!cap || cap.code !== captchaAnswer) {
+      return fail('کد امنیتی (کپچا) اشتباه است');
+    }
+    if (Date.parse(cap.expires_at) < Date.now()) {
+      return fail('کپچا منقضی شده. دوباره تلاش کنید');
+    }
+    db.prepare('UPDATE otp_codes SET used = 1 WHERE id = ?').run(cap.id);
+
+    const user_code = 'U' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 90 + 10);
     const password_hash = await bcrypt.hash(password, 12);
-
     db.prepare(`
       INSERT INTO users (user_code, first_name, last_name, phone_am, whatsapp, passport_path, password_hash)
       VALUES (?, ?, ?, ?, ?, NULL, ?)
@@ -132,9 +169,12 @@ app.post('/register', async (req, res) => {
     res.render('register-success', { user_code, title: 'ثبت‌نام موفق' });
   } catch (e) {
     console.error(e);
-    res.render('register', { error: 'خطا در ثبت‌نام. این شماره قبلاً ثبت شده یا مشکل سرور.', title: 'ثبت‌نام' });
+    const c = makeCaptcha();
+    res.render('register', { error: 'خطا در ثبت‌نام. این شماره قبلاً ثبت شده یا مشکل سرور.', title: 'ثبت‌نام', ...c });
   }
 });
+
+
 
 app.get('/login', (req, res) => {
   res.render('login', { error: null, title: 'ورود' });
@@ -507,21 +547,38 @@ app.post('/admin/transaction/:code/update', authAdmin, (req, res) => {
 });
 
 app.get('/admin/rates', authAdmin, (req, res) => {
+  try { ensureActivePairs(); } catch (e) {}
   const rates = getAllRates();
-  res.render('admin/rates', { admin: req.admin, rates, title: 'نرخ‌ها' });
+  res.render('admin/rates', { admin: req.admin, rates, ok: req.query.ok, title: 'نرخ‌ها' });
+});
+
+// If someone opens update URL in browser (GET) — don't crash
+app.get('/admin/rates/update', authAdmin, (req, res) => {
+  res.redirect('/admin/rates');
 });
 
 app.post('/admin/rates/update', authAdmin, (req, res) => {
-  const { pair, buy_rate, sell_rate } = req.body;
-  if (pair && buy_rate && sell_rate) {
-    setManualRate(pair, parseFloat(buy_rate), parseFloat(sell_rate));
+  try {
+    const pair = String(req.body.pair || '').trim();
+    const buy = parseFloat(req.body.buy_rate);
+    const sell = parseFloat(req.body.sell_rate);
+    if (pair && Number.isFinite(buy) && Number.isFinite(sell)) {
+      setManualRate(pair, buy, sell);
+    }
+  } catch (e) {
+    console.error('manual rate', e.message);
   }
-  res.redirect('/admin/rates');
+  res.redirect('/admin/rates?ok=1');
 });
 
 app.post('/admin/rates/refresh', authAdmin, async (req, res) => {
-  await updateRatesFromApi();
-  res.redirect('/admin/rates');
+  try {
+    await updateRatesFromApi();
+    ensureActivePairs();
+  } catch (e) {
+    console.error('refresh rates', e.message);
+  }
+  res.redirect('/admin/rates?ok=1');
 });
 
 app.get('/admin/payments', authAdmin, (req, res) => {
@@ -615,6 +672,17 @@ async function start() {
   } catch (e) {
     console.log('init-db:', e.message);
   }
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS otp_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      code TEXT NOT NULL,
+      purpose TEXT DEFAULT 'register',
+      expires_at TEXT NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
+  } catch (e) { console.log('otp table:', e.message); }
 
   // Extra tables / columns (safe)
   try {
@@ -658,6 +726,7 @@ async function start() {
   }
 
   seedAdmins();
+  try { ensureActivePairs(); } catch (e) { console.log('ensure pairs', e.message); }
   // Initial rates fetch
   try {
     await updateRatesFromApi();
