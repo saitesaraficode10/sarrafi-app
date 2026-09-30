@@ -85,7 +85,12 @@ async function updateRatesFromApi() {
 }
 
 function getAllRates() {
-  return db.prepare('SELECT * FROM rates ORDER BY pair').all();
+  try {
+    return db.prepare('SELECT * FROM rates ORDER BY pair').all();
+  } catch (e) {
+    console.error('getAllRates', e.message);
+    return [];
+  }
 }
 
 function getRate(pair) {
