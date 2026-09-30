@@ -12,10 +12,16 @@ const fs = require('fs');
 
 const db = require('./utils/db');
 const { updateRatesFromApi, getAllRates, getRate, setManualRate } = require('./utils/rates');
+const { sendOtp, generateOtp } = require('./utils/sms');
 const { authUser, authAdmin, optionalUser } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+function normalizePhone(p) {
+  return String(p || '').replace(/[\s\-()]/g, '').trim();
+}
+
 
 // Ensure upload dirs
 ['passports', 'receipts'].forEach(dir => {
@@ -95,47 +101,101 @@ app.get('/set-lang/:lang', (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  res.render('register', { error: null, title: 'ثبت‌نام' });
+  const a = Math.floor(Math.random() * 8) + 2;
+  const b = Math.floor(Math.random() * 8) + 2;
+  const token = require('crypto').randomBytes(8).toString('hex');
+  try {
+    db.prepare("INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, 'captcha', ?)").run(
+      token, String(a + b), new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    );
+  } catch (e) {}
+  res.render('register', {
+    error: null,
+    captchaToken: token,
+    captchaQuestion: `${a} + ${b}`,
+    title: 'ثبت‌نام'
+  });
 });
 
-app.post('/register', uploadPassport.single('passport'), async (req, res) => {
+app.post('/register', async (req, res) => {
+  const makeCaptcha = () => {
+    const a = Math.floor(Math.random() * 8) + 2;
+    const b = Math.floor(Math.random() * 8) + 2;
+    const token = require('crypto').randomBytes(8).toString('hex');
+    try {
+      db.prepare("INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, 'captcha', ?)").run(
+        token, String(a + b), new Date(Date.now() + 15 * 60 * 1000).toISOString()
+      );
+    } catch (e) {}
+    return { captchaToken: token, captchaQuestion: `${a} + ${b}` };
+  };
   try {
-    const { first_name, last_name, phone_am, whatsapp, password } = req.body;
-    if (!first_name || !last_name || !phone_am || !password) {
-      return res.render('register', { error: 'همه فیلدهای اجباری را پر کنید', title: 'ثبت‌نام' });
+    const first_name = String(req.body.first_name || '').trim();
+    const last_name = String(req.body.last_name || '').trim();
+    const phone_am = normalizePhone(req.body.phone_am);
+    const whatsapp = normalizePhone(req.body.whatsapp) || null;
+    const password = String(req.body.password || '');
+    const captchaToken = String(req.body.captcha_token || '');
+    const captchaAnswer = String(req.body.captcha_answer || '').trim();
+
+    const fail = (msg) => {
+      const c = makeCaptcha();
+      return res.render('register', { error: msg, title: 'ثبت‌نام', ...c });
+    };
+
+    if (!first_name || !last_name || !phone_am || password.length < 6) {
+      return fail('نام، شماره ارمنی و رمز (حداقل ۶ کاراکتر) الزامی است');
     }
-    if (!req.file) {
-      return res.render('register', { error: 'آپلود پاسپورت یا کارت اقامت الزامی است', title: 'ثبت‌نام' });
+    if (!phone_am.includes('374') && !phone_am.startsWith('0')) {
+      return fail('لطفاً شماره تماس ارمنی معتبر وارد کنید (مثلاً +374XXXXXXXX)');
     }
 
-    const user_code = 'U' + Date.now().toString().slice(-8) + Math.floor(Math.random()*90+10);
+    const cap = db.prepare("SELECT * FROM otp_codes WHERE phone = ? AND purpose = 'captcha' AND used = 0 ORDER BY id DESC LIMIT 1").get(captchaToken);
+    if (!cap || cap.code !== captchaAnswer) {
+      return fail('کد امنیتی (کپچا) اشتباه است');
+    }
+    if (Date.parse(cap.expires_at) < Date.now()) {
+      return fail('کپچا منقضی شده. دوباره تلاش کنید');
+    }
+    db.prepare('UPDATE otp_codes SET used = 1 WHERE id = ?').run(cap.id);
+
+    const user_code = 'U' + Date.now().toString().slice(-8) + Math.floor(Math.random() * 90 + 10);
     const password_hash = await bcrypt.hash(password, 12);
-    const passport_path = '/uploads/passports/' + req.file.filename;
-
     db.prepare(`
       INSERT INTO users (user_code, first_name, last_name, phone_am, whatsapp, passport_path, password_hash)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(user_code, first_name, last_name, phone_am, whatsapp || null, passport_path, password_hash);
+      VALUES (?, ?, ?, ?, ?, NULL, ?)
+    `).run(user_code, first_name, last_name, phone_am, whatsapp, password_hash);
 
     res.render('register-success', { user_code, title: 'ثبت‌نام موفق' });
   } catch (e) {
     console.error(e);
-    res.render('register', { error: 'خطا در ثبت‌نام. شماره تکراری یا مشکل سرور.', title: 'ثبت‌نام' });
+    const c = makeCaptcha();
+    res.render('register', { error: 'خطا در ثبت‌نام. این شماره قبلاً ثبت شده یا مشکل سرور.', title: 'ثبت‌نام', ...c });
   }
 });
+
+
 
 app.get('/login', (req, res) => {
   res.render('login', { error: null, title: 'ورود' });
 });
 
 app.post('/login', loginLimiter, async (req, res) => {
-  const { phone_am, password } = req.body;
-  const user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone_am);
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-    return res.render('login', { error: 'شماره یا رمز اشتباه است', title: 'ورود' });
+  const phone_am = normalizePhone(req.body.phone_am);
+  const password = String(req.body.password || '');
+  // try exact match, then with/without +
+  let user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone_am);
+  if (!user && phone_am.startsWith('+')) {
+    user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone_am.slice(1));
   }
-  const token = jwt.sign({ id: user.id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  if (!user && !phone_am.startsWith('+')) {
+    user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get('+' + phone_am);
+  }
+  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    return res.render('login', { error: 'شماره ارمنی یا رمز اشتباه است', title: 'ورود' });
+  }
+  const token = jwt.sign({ id: user.id, role: 'user' }, process.env.JWT_SECRET || 'change-me', { expiresIn: '7d' });
+  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.redirect('/dashboard');
 });
 
@@ -162,29 +222,49 @@ app.get('/new-order', authUser, (req, res) => {
 });
 
 app.post('/new-order', authUser, (req, res) => {
-  const { pair, amount_from, bank_name } = req.body;
-  const rateRow = getRate(pair);
-  if (!rateRow) return res.redirect('/new-order');
+  uploadPassport.single('passport')(req, res, (err) => {
+    if (err) {
+      const rates = getAllRates();
+      const banks = db.prepare('SELECT * FROM payment_info WHERE is_active = 1 ORDER BY sort_order').all();
+      return res.render('user/new-order', { user: req.user, rates, banks, error: err.message || 'خطا در آپلود', title: 'سفارش جدید' });
+    }
+    const { pair, amount_from, bank_name } = req.body;
+    const rateRow = getRate(pair);
+    if (!rateRow) return res.redirect('/new-order');
 
-  const [from_currency, to_currency] = pair.split('_');
-  const amount = parseFloat(amount_from);
-  if (!amount || amount <= 0) {
+    const [from_currency, to_currency] = pair.split('_');
+    const amount = parseFloat(amount_from);
     const rates = getAllRates();
     const banks = db.prepare('SELECT * FROM payment_info WHERE is_active = 1 ORDER BY sort_order').all();
-    return res.render('user/new-order', { user: req.user, rates, banks, error: 'مبلغ نامعتبر', title: 'سفارش جدید' });
-  }
+    if (!amount || amount <= 0) {
+      return res.render('user/new-order', { user: req.user, rates, banks, error: 'مبلغ نامعتبر', title: 'سفارش جدید' });
+    }
 
-  // Use sell rate for user buying the to_currency (simplified)
-  const rate_used = rateRow.sell_rate;
-  const amount_to = amount * rate_used;
-  const transaction_code = 'TX' + Date.now().toString().slice(-10);
+    // Passport required on first transaction if not already on profile
+    if (!req.user.passport_path && !req.file) {
+      return res.render('user/new-order', {
+        user: req.user, rates, banks,
+        error: 'برای ثبت سفارش، آپلود پاسپورت یا کارت اقامت ارمنستان الزامی است',
+        title: 'سفارش جدید'
+      });
+    }
+    if (req.file) {
+      const passport_path = '/uploads/passports/' + req.file.filename;
+      db.prepare('UPDATE users SET passport_path = ? WHERE id = ?').run(passport_path, req.user.id);
+      req.user.passport_path = passport_path;
+    }
 
-  db.prepare(`
-    INSERT INTO transactions (transaction_code, user_id, pair, from_currency, to_currency, amount_from, amount_to, rate_used, bank_name, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')
-  `).run(transaction_code, req.user.id, pair, from_currency, to_currency, amount, amount_to, rate_used, bank_name);
+    const rate_used = rateRow.sell_rate;
+    const amount_to = amount * rate_used;
+    const transaction_code = 'TX' + Date.now().toString().slice(-10);
 
-  res.redirect('/order/' + transaction_code);
+    db.prepare(`
+      INSERT INTO transactions (transaction_code, user_id, pair, from_currency, to_currency, amount_from, amount_to, rate_used, bank_name, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')
+    `).run(transaction_code, req.user.id, pair, from_currency, to_currency, amount, amount_to, rate_used, bank_name);
+
+    res.redirect('/order/' + transaction_code);
+  });
 });
 
 app.get('/order/:code', authUser, (req, res) => {
@@ -540,6 +620,21 @@ app.post('/admin/cash-in/:code/update', authAdmin, (req, res) => {
   res.redirect('/admin/cash-in/' + req.params.code);
 });
 
+
+app.post('/admin/user/:code/delete', authAdmin, (req, res) => {
+  try {
+    const user = db.prepare('SELECT id FROM users WHERE user_code = ?').get(req.params.code);
+    if (user) {
+      db.prepare('DELETE FROM favorites WHERE user_id = ?').run(user.id);
+      try { db.prepare('DELETE FROM cash_in_orders WHERE user_id = ?').run(user.id); } catch (e) {}
+      // keep transactions history but null user link if needed - or delete
+      try { db.prepare('DELETE FROM transactions WHERE user_id = ?').run(user.id); } catch (e) {}
+      db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+    }
+  } catch (e) { console.error('delete user', e.message); }
+  res.redirect('/admin/users');
+});
+
 // Seed admins on start if needed
 function seedAdmins() {
   try {
@@ -560,6 +655,17 @@ async function start() {
   } catch (e) {
     console.log('init-db:', e.message);
   }
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS otp_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      phone TEXT NOT NULL,
+      code TEXT NOT NULL,
+      purpose TEXT DEFAULT 'register',
+      expires_at TEXT NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
+  } catch (e) { console.log('otp table:', e.message); }
 
   // Extra tables / columns (safe)
   try {
