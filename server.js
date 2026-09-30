@@ -22,6 +22,36 @@ function normalizePhone(p) {
   return String(p || '').replace(/[\s\-()]/g, '').trim();
 }
 
+function getSettings() {
+  try {
+    const rows = db.prepare('SELECT key, value FROM site_settings').all();
+    const o = {};
+    rows.forEach(r => o[r.key] = r.value);
+    return {
+      phone: o.phone || '+37400000000',
+      whatsapp: o.whatsapp || '+37400000000',
+      address: o.address || 'Yerevan, Armenia',
+      map_url: o.map_url || 'https://maps.google.com',
+      office_note: o.office_note || ''
+    };
+  } catch (e) {
+    return { phone:'+37400000000', whatsapp:'+37400000000', address:'Yerevan', map_url:'#', office_note:'' };
+  }
+}
+
+function statusLabel(st) {
+  const m = {
+    pending_payment: 'در انتظار واریز',
+    pending_declaration: 'در انتظار اعلامیه',
+    pending_review: 'در انتظار بررسی ادمین',
+    ready_pickup: 'آماده حضور در دفتر',
+    completed: 'تکمیل شده',
+    rejected: 'رسید رد شده'
+  };
+  return m[st] || st;
+}
+
+
 
 // Ensure upload dirs
 ['passports', 'receipts'].forEach(dir => {
@@ -79,6 +109,8 @@ app.use((req, res, next) => {
   res.locals.lang = lang;
   res.locals.t = (key) => t(lang, key);
   res.locals.dir = (lang === 'fa' || lang === 'hy') ? 'rtl' : 'ltr';
+  res.locals.settings = getSettings();
+  res.locals.statusLabel = statusLabel;
   next();
 });
 
@@ -87,7 +119,9 @@ app.get('/', optionalUser, (req, res) => {
   try {
     let rates = [];
     try { rates = getAllRates() || []; } catch (e) { console.error('rates:', e.message); rates = []; }
-    res.render('index', { user: req.user, rates, title: 'صرافی آنلاین' });
+    let userCount = 0;
+    try { userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c; } catch (e) {}
+    res.render('index', { user: req.user, rates, userCount, title: 'صرافی آنلاین' });
   } catch (e) {
     console.error('home error:', e.message);
     res.status(500).send('خطای سرور: ' + e.message);
@@ -133,7 +167,7 @@ app.post('/register', async (req, res) => {
     const first_name = String(req.body.first_name || '').trim();
     const last_name = String(req.body.last_name || '').trim();
     const phone_am = normalizePhone(req.body.phone_am);
-    const whatsapp = normalizePhone(req.body.whatsapp) || null;
+    const whatsapp = normalizePhone(req.body.whatsapp);
     const password = String(req.body.password || '');
     const captchaToken = String(req.body.captcha_token || '');
     const captchaAnswer = String(req.body.captcha_answer || '').trim();
@@ -144,7 +178,10 @@ app.post('/register', async (req, res) => {
     };
 
     if (!first_name || !last_name || !phone_am || password.length < 6) {
-      return fail('نام، شماره ارمنی و رمز (حداقل ۶ کاراکتر) الزامی است');
+      return fail('نام، شماره تماس و رمز (حداقل ۶ کاراکتر) الزامی است');
+    }
+    if (!whatsapp || whatsapp.length < 8) {
+      return fail('شماره واتساپ اجباری است');
     }
     if (!phone_am.includes('374') && !phone_am.startsWith('0')) {
       return fail('لطفاً شماره تماس ارمنی معتبر وارد کنید (مثلاً +374XXXXXXXX)');
@@ -307,21 +344,23 @@ app.post('/order/:code/declaration', authUser, (req, res) => {
   const tx = db.prepare('SELECT * FROM transactions WHERE transaction_code = ? AND user_id = ?').get(req.params.code, req.user.id);
   if (!tx || !tx.receipt_path) return res.redirect('/dashboard');
 
-  const {
-    national_id,
-    deposit_date,
-    from_account_name,
-    tracking_number,
-    receive_date,
-    depositor_name_date
-  } = req.body;
+  const declarant_name = String(req.body.declarant_name || '').trim();
+  const national_id = String(req.body.national_id || '').trim();
+  const deposit_date = String(req.body.deposit_date || '').trim();
+  const from_account_name = String(req.body.from_account_name || '').trim();
+  const from_bank = String(req.body.from_bank || '').trim();
+  const to_card_or_sheba = String(req.body.to_card_or_sheba || '').trim();
+  const to_account_name = String(req.body.to_account_name || '').trim();
+  const to_bank = String(req.body.to_bank || '').trim();
+  const tracking_number = String(req.body.tracking_number || '').trim();
+  const receive_date = String(req.body.receive_date || '').trim();
+  const depositor_name_date = String(req.body.depositor_name_date || '').trim() || declarant_name;
 
-  if (!national_id || !deposit_date || !from_account_name || !tracking_number || !receive_date || !depositor_name_date) {
-    const bank = db.prepare('SELECT * FROM payment_info WHERE bank_name = ?').get(tx.bank_name);
+  const bank = db.prepare('SELECT * FROM payment_info WHERE bank_name = ?').get(tx.bank_name);
+  if (!declarant_name || !national_id || !deposit_date || !from_account_name || !from_bank ||
+      !to_card_or_sheba || !to_account_name || !to_bank) {
     return res.render('user/declaration', {
-      user: req.user,
-      tx,
-      bank,
+      user: req.user, tx, bank,
       error: 'لطفاً تمام فیلدهای اعلامیه را تکمیل کنید',
       title: 'اعلامیه دریافت درام'
     });
@@ -335,17 +374,19 @@ app.post('/order/:code/declaration', authUser, (req, res) => {
       tracking_number = ?,
       receive_date = ?,
       depositor_name_date = ?,
+      from_bank = ?,
+      to_card_or_sheba = ?,
+      to_account_name = ?,
+      to_bank = ?,
+      declarant_name = ?,
       declaration_filled = 1,
       status = 'pending_review',
       updated_at = datetime('now')
     WHERE id = ?
   `).run(
-    national_id,
-    deposit_date,
-    from_account_name,
-    tracking_number,
-    receive_date,
-    depositor_name_date,
+    national_id, deposit_date, from_account_name,
+    tracking_number || null, receive_date || null, depositor_name_date,
+    from_bank, to_card_or_sheba, to_account_name, to_bank, declarant_name,
     tx.id
   );
 
@@ -492,7 +533,7 @@ app.get('/admin/users', authAdmin, (req, res) => {
       ORDER BY created_at DESC
     `).all(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
   } else {
-    users = db.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT 100').all();
+    users = db.prepare('SELECT * FROM users ORDER BY COALESCE(last_seen, created_at) DESC LIMIT 100').all();
   }
   res.render('admin/users', { admin: req.admin, users, q, title: 'کاربران' });
 });
@@ -534,16 +575,49 @@ app.get('/admin/transaction/:code', authAdmin, (req, res) => {
 });
 
 app.post('/admin/transaction/:code/update', authAdmin, (req, res) => {
-  const { status, pickup_time, admin_note } = req.body;
+  const { status, pickup_time, admin_note, office_address, office_date, office_time, receiver_name, receive_sign_date, tracking_bank } = req.body;
   const tx = db.prepare('SELECT * FROM transactions WHERE transaction_code = ?').get(req.params.code);
   if (!tx) return res.redirect('/admin/transactions');
 
   db.prepare(`
-    UPDATE transactions SET status = ?, pickup_time = ?, admin_note = ?, updated_at = datetime('now')
+    UPDATE transactions SET
+      status = ?,
+      pickup_time = ?,
+      admin_note = ?,
+      office_address = ?,
+      office_date = ?,
+      office_time = ?,
+      receiver_name = ?,
+      receive_sign_date = ?,
+      tracking_number = COALESCE(?, tracking_number),
+      updated_at = datetime('now')
     WHERE id = ?
-  `).run(status || tx.status, pickup_time || tx.pickup_time, admin_note || tx.admin_note, tx.id);
+  `).run(
+    status || tx.status,
+    pickup_time || tx.pickup_time || null,
+    admin_note || tx.admin_note || null,
+    office_address || tx.office_address || null,
+    office_date || tx.office_date || null,
+    office_time || tx.office_time || null,
+    receiver_name || tx.receiver_name || null,
+    receive_sign_date || tx.receive_sign_date || null,
+    tracking_bank || null,
+    tx.id
+  );
 
   res.redirect('/admin/transaction/' + req.params.code);
+});
+
+
+
+app.get('/admin/transaction/:code/print-declaration', authAdmin, (req, res) => {
+  const tx = db.prepare(`
+    SELECT t.*, u.first_name, u.last_name FROM transactions t
+    JOIN users u ON t.user_id = u.id WHERE t.transaction_code = ?
+  `).get(req.params.code);
+  if (!tx) return res.status(404).send('یافت نشد');
+  const bank = db.prepare('SELECT * FROM payment_info WHERE bank_name = ?').get(tx.bank_name);
+  res.render('user/declaration-receipt', { user: null, tx, bank, title: 'چاپ اعلامیه' });
 });
 
 app.get('/admin/rates', authAdmin, (req, res) => {
@@ -597,6 +671,52 @@ app.post('/admin/payments/update', authAdmin, (req, res) => {
 
 
 // ========== ADMIN CASH-IN ORDERS ==========
+
+// ========== HEARTBEAT / CONTACT / TOOLS ==========
+app.post('/api/heartbeat', optionalUser, (req, res) => {
+  if (req.user) {
+    try { db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(req.user.id); } catch (e) {}
+  }
+  res.json({ ok: true });
+});
+
+app.get('/contact', (req, res) => {
+  res.render('contact', { title: 'ارتباط با ما', settings: getSettings() });
+});
+
+app.get('/tools/date', (req, res) => {
+  res.render('tools-date', { title: 'تبدیل تاریخ' });
+});
+
+app.get('/track', (req, res) => {
+  res.render('track', { title: 'پیگیری سفارش', result: null, code: '' });
+});
+
+app.post('/track', (req, res) => {
+  const code = String(req.body.code || '').trim();
+  let result = null;
+  if (code) {
+    result = db.prepare('SELECT transaction_code as code, status, pickup_time, office_address, office_date, office_time, pair, amount_from, amount_to, from_currency, to_currency FROM transactions WHERE transaction_code = ?').get(code);
+    if (!result) {
+      result = db.prepare('SELECT order_code as code, status, amount_amd, amount_toman, delivery_date, delivery_time FROM cash_in_orders WHERE order_code = ?').get(code);
+      if (result) result.kind = 'cash_in';
+    } else result.kind = 'tx';
+  }
+  res.render('track', { title: 'پیگیری سفارش', result, code });
+});
+
+app.get('/admin/settings', authAdmin, (req, res) => {
+  res.render('admin/settings', { admin: req.admin, settings: getSettings(), title: 'تنظیمات دفتر' });
+});
+
+app.post('/admin/settings', authAdmin, (req, res) => {
+  const keys = ['phone','whatsapp','address','map_url','office_note'];
+  const upsert = db.prepare('INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
+  keys.forEach(k => upsert.run(k, String(req.body[k] || '').trim()));
+  res.redirect('/admin/settings?ok=1');
+});
+
+
 app.get('/admin/cash-in', authAdmin, (req, res) => {
   const status = req.query.status || '';
   let orders;
@@ -721,12 +841,37 @@ async function start() {
     addCol('receive_date', 'TEXT');
     addCol('depositor_name_date', 'TEXT');
     addCol('declaration_filled', 'INTEGER DEFAULT 0');
+    addCol('from_bank', 'TEXT');
+    addCol('to_card_or_sheba', 'TEXT');
+    addCol('to_account_name', 'TEXT');
+    addCol('to_bank', 'TEXT');
+    addCol('declarant_name', 'TEXT');
+    addCol('office_address', 'TEXT');
+    addCol('office_date', 'TEXT');
+    addCol('office_time', 'TEXT');
+    addCol('receiver_name', 'TEXT');
+    addCol('receive_sign_date', 'TEXT');
+    addCol('tracking_number', 'TEXT');
   } catch (e) {
     console.log('transactions migrate:', e.message);
   }
 
   seedAdmins();
   try { ensureActivePairs(); } catch (e) { console.log('ensure pairs', e.message); }
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS site_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )`);
+    db.exec(`ALTER TABLE users ADD COLUMN last_seen TEXT`);
+  } catch (e) {}
+  try {
+    const n = db.prepare('SELECT COUNT(*) as c FROM site_settings').get().c;
+    if (n === 0) {
+      const ins = db.prepare('INSERT OR IGNORE INTO site_settings (key,value) VALUES (?,?)');
+      [['phone','+374XXXXXXXX'],['whatsapp','+374XXXXXXXX'],['address','Yerevan, Armenia'],['map_url','https://maps.google.com'],['office_note','']].forEach(x=>ins.run(x[0],x[1]));
+    }
+  } catch (e) {}
   // Initial rates fetch
   try {
     await updateRatesFromApi();
