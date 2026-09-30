@@ -1,1 +1,38 @@
-ok
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= dir %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070b14">
+  <title><%= title %> | <%= t('site_name') %></title>
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="fx-nav">
+  <div class="container fx-nav-inner">
+    <a class="fx-brand" href="/">
+      <span class="fx-brand-mark">FX</span>
+      <span class="fx-brand-text"><%= t('site_name') %></span>
+    </a>
+    <nav class="fx-links">
+      <a href="/"><%= t('home') %></a>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <a href="/dashboard"><%= t('dashboard') %></a>
+        <a href="/new-order"><%= t('new_order') %></a>
+        <a href="/cash-in">تحویل درام</a>
+        <a href="/logout"><%= t('logout') %></a>
+      <% } else { %>
+        <a href="/login"><%= t('login') %></a>
+        <a class="btn btn-gold" href="/register" style="padding:0.4rem 0.95rem"><%= t('register') %></a>
+      <% } %>
+      <span class="lang">
+        <a href="/set-lang/fa" class="<%= lang==='fa'?'active':'' %>">FA</a>
+        <a href="/set-lang/en" class="<%= lang==='en'?'active':'' %>">EN</a>
+        <a href="/set-lang/ru" class="<%= lang==='ru'?'active':'' %>">RU</a>
+        <a href="/set-lang/hy" class="<%= lang==='hy'?'active':'' %>">HY</a>
+      </span>
+    </nav>
+  </div>
+</header>
+<main class="container" style="padding-top:0.5rem;padding-bottom:2rem">
