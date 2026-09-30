@@ -78,8 +78,14 @@ app.use((req, res, next) => {
 
 // ========== PUBLIC ROUTES ==========
 app.get('/', optionalUser, (req, res) => {
-  const rates = getAllRates();
-  res.render('index', { user: req.user, rates, title: 'صرافی آنلاین' });
+  try {
+    let rates = [];
+    try { rates = getAllRates() || []; } catch (e) { console.error('rates:', e.message); rates = []; }
+    res.render('index', { user: req.user, rates, title: 'صرافی آنلاین' });
+  } catch (e) {
+    console.error('home error:', e.message);
+    res.status(500).send('خطای سرور: ' + e.message);
+  }
 });
 
 app.get('/set-lang/:lang', (req, res) => {
@@ -585,7 +591,6 @@ async function start() {
       addCol('declaration_filled', 'INTEGER DEFAULT 0');
     } catch (e) { console.log('migrate:', e.message); }
   }
-    try { require('./utils/init-db'); } catch (e) { console.log(e.message); }
   seedAdmins();
   // Initial rates fetch
   try {
