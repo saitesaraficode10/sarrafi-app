@@ -17,6 +17,11 @@ const { authUser, authAdmin, optionalUser } = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+function normalizePhone(p) {
+  return String(p || '').replace(/[\s\-()]/g, '').trim();
+}
+
+
 // Ensure upload dirs
 ['passports', 'receipts'].forEach(dir => {
   const p = path.join(__dirname, 'public', 'uploads', dir);
@@ -98,29 +103,36 @@ app.get('/register', (req, res) => {
   res.render('register', { error: null, title: 'ثبت‌نام' });
 });
 
-app.post('/register', uploadPassport.single('passport'), async (req, res) => {
+app.post('/register', async (req, res) => {
   try {
-    const { first_name, last_name, phone_am, whatsapp, password } = req.body;
-    if (!first_name || !last_name || !phone_am || !password) {
-      return res.render('register', { error: 'همه فیلدهای اجباری را پر کنید', title: 'ثبت‌نام' });
+    const first_name = String(req.body.first_name || '').trim();
+    const last_name = String(req.body.last_name || '').trim();
+    const phone_am = normalizePhone(req.body.phone_am);
+    const whatsapp = normalizePhone(req.body.whatsapp) || null;
+    const password = String(req.body.password || '');
+    if (!first_name || !last_name || !phone_am || password.length < 6) {
+      return res.render('register', { error: 'نام، شماره ارمنی و رمز (حداقل ۶ کاراکتر) الزامی است', title: 'ثبت‌نام' });
     }
-    if (!req.file) {
-      return res.render('register', { error: 'آپلود پاسپورت یا کارت اقامت الزامی است', title: 'ثبت‌نام' });
+    // Armenian numbers typically +374...
+    if (!/^\+?374\d{8}$/.test(phone_am) && !/^\+?374\d{6,10}$/.test(phone_am)) {
+      // soft check: must contain 374 or start with 0 local - still allow flexible
+      if (!phone_am.includes('374') && !phone_am.startsWith('0')) {
+        return res.render('register', { error: 'لطفاً شماره تماس ارمنی معتبر وارد کنید (مثلاً +374XXXXXXXX)', title: 'ثبت‌نام' });
+      }
     }
 
     const user_code = 'U' + Date.now().toString().slice(-8) + Math.floor(Math.random()*90+10);
     const password_hash = await bcrypt.hash(password, 12);
-    const passport_path = '/uploads/passports/' + req.file.filename;
 
     db.prepare(`
       INSERT INTO users (user_code, first_name, last_name, phone_am, whatsapp, passport_path, password_hash)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(user_code, first_name, last_name, phone_am, whatsapp || null, passport_path, password_hash);
+      VALUES (?, ?, ?, ?, ?, NULL, ?)
+    `).run(user_code, first_name, last_name, phone_am, whatsapp, password_hash);
 
     res.render('register-success', { user_code, title: 'ثبت‌نام موفق' });
   } catch (e) {
     console.error(e);
-    res.render('register', { error: 'خطا در ثبت‌نام. شماره تکراری یا مشکل سرور.', title: 'ثبت‌نام' });
+    res.render('register', { error: 'خطا در ثبت‌نام. این شماره قبلاً ثبت شده یا مشکل سرور.', title: 'ثبت‌نام' });
   }
 });
 
@@ -129,13 +141,21 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', loginLimiter, async (req, res) => {
-  const { phone_am, password } = req.body;
-  const user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone_am);
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-    return res.render('login', { error: 'شماره یا رمز اشتباه است', title: 'ورود' });
+  const phone_am = normalizePhone(req.body.phone_am);
+  const password = String(req.body.password || '');
+  // try exact match, then with/without +
+  let user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone_am);
+  if (!user && phone_am.startsWith('+')) {
+    user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get(phone_am.slice(1));
   }
-  const token = jwt.sign({ id: user.id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  if (!user && !phone_am.startsWith('+')) {
+    user = db.prepare('SELECT * FROM users WHERE phone_am = ?').get('+' + phone_am);
+  }
+  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    return res.render('login', { error: 'شماره ارمنی یا رمز اشتباه است', title: 'ورود' });
+  }
+  const token = jwt.sign({ id: user.id, role: 'user' }, process.env.JWT_SECRET || 'change-me', { expiresIn: '7d' });
+  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.redirect('/dashboard');
 });
 
@@ -162,29 +182,49 @@ app.get('/new-order', authUser, (req, res) => {
 });
 
 app.post('/new-order', authUser, (req, res) => {
-  const { pair, amount_from, bank_name } = req.body;
-  const rateRow = getRate(pair);
-  if (!rateRow) return res.redirect('/new-order');
+  uploadPassport.single('passport')(req, res, (err) => {
+    if (err) {
+      const rates = getAllRates();
+      const banks = db.prepare('SELECT * FROM payment_info WHERE is_active = 1 ORDER BY sort_order').all();
+      return res.render('user/new-order', { user: req.user, rates, banks, error: err.message || 'خطا در آپلود', title: 'سفارش جدید' });
+    }
+    const { pair, amount_from, bank_name } = req.body;
+    const rateRow = getRate(pair);
+    if (!rateRow) return res.redirect('/new-order');
 
-  const [from_currency, to_currency] = pair.split('_');
-  const amount = parseFloat(amount_from);
-  if (!amount || amount <= 0) {
+    const [from_currency, to_currency] = pair.split('_');
+    const amount = parseFloat(amount_from);
     const rates = getAllRates();
     const banks = db.prepare('SELECT * FROM payment_info WHERE is_active = 1 ORDER BY sort_order').all();
-    return res.render('user/new-order', { user: req.user, rates, banks, error: 'مبلغ نامعتبر', title: 'سفارش جدید' });
-  }
+    if (!amount || amount <= 0) {
+      return res.render('user/new-order', { user: req.user, rates, banks, error: 'مبلغ نامعتبر', title: 'سفارش جدید' });
+    }
 
-  // Use sell rate for user buying the to_currency (simplified)
-  const rate_used = rateRow.sell_rate;
-  const amount_to = amount * rate_used;
-  const transaction_code = 'TX' + Date.now().toString().slice(-10);
+    // Passport required on first transaction if not already on profile
+    if (!req.user.passport_path && !req.file) {
+      return res.render('user/new-order', {
+        user: req.user, rates, banks,
+        error: 'برای ثبت سفارش، آپلود پاسپورت یا کارت اقامت ارمنستان الزامی است',
+        title: 'سفارش جدید'
+      });
+    }
+    if (req.file) {
+      const passport_path = '/uploads/passports/' + req.file.filename;
+      db.prepare('UPDATE users SET passport_path = ? WHERE id = ?').run(passport_path, req.user.id);
+      req.user.passport_path = passport_path;
+    }
 
-  db.prepare(`
-    INSERT INTO transactions (transaction_code, user_id, pair, from_currency, to_currency, amount_from, amount_to, rate_used, bank_name, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')
-  `).run(transaction_code, req.user.id, pair, from_currency, to_currency, amount, amount_to, rate_used, bank_name);
+    const rate_used = rateRow.sell_rate;
+    const amount_to = amount * rate_used;
+    const transaction_code = 'TX' + Date.now().toString().slice(-10);
 
-  res.redirect('/order/' + transaction_code);
+    db.prepare(`
+      INSERT INTO transactions (transaction_code, user_id, pair, from_currency, to_currency, amount_from, amount_to, rate_used, bank_name, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')
+    `).run(transaction_code, req.user.id, pair, from_currency, to_currency, amount, amount_to, rate_used, bank_name);
+
+    res.redirect('/order/' + transaction_code);
+  });
 });
 
 app.get('/order/:code', authUser, (req, res) => {
