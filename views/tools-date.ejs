@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<div class="panel stack" style="max-width:480px;margin:1rem auto">
+  <h1 style="margin:0">تبدیل تاریخ</h1>
+  <label class="label">حالت</label>
+  <select class="input" id="dc-mode">
+    <option value="g2j">میلادی → شمسی</option>
+    <option value="j2g">شمسی → میلادی (راهنما)</option>
+  </select>
+  <label class="label">تاریخ میلادی</label>
+  <input class="input" type="date" id="dc-in">
+  <button class="btn btn-gold" type="button" onclick="convertDate()">تبدیل</button>
+  <div class="box-card"><div id="dc-out" class="muted">نتیجه اینجا نمایش داده می‌شود</div></div>
+  <p class="muted">در فرم‌های سفارش، هم انتخابگر میلادی و هم فیلد متنی شمسی دارید.</p>
+</div>
+<%- include('partials/footer') %>

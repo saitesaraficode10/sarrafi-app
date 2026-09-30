@@ -10,7 +10,7 @@
 <div class="table-wrap panel" style="padding:0">
   <table>
     <thead>
-      <tr><th>کد</th><th>نام</th><th>تلفن</th><th>تاریخ</th><th></th></tr>
+      <tr><th>کد</th><th>نام</th><th>تلفن</th><th>وضعیت</th><th>آخرین بازدید</th><th></th></tr>
     </thead>
     <tbody>
       <% if (users && users.length) { %>
@@ -19,7 +19,8 @@
             <td><b style="color:var(--gold)"><%= u.user_code %></b></td>
             <td><%= u.first_name %> <%= u.last_name %></td>
             <td><%= u.phone_am %></td>
-            <td class="muted"><%= u.created_at %></td>
+            <td><span class="status-badge st-review"><%= u.last_seen ? 'فعال' : '—' %></span></td>
+            <td class="muted" style="font-size:0.8rem"><%= u.last_seen || 'هرگز' %></td>
             <td style="display:flex;gap:0.4rem;flex-wrap:wrap">
               <a class="btn btn-soft" style="padding:0.3rem 0.7rem" href="/admin/user/<%= u.user_code %>">مشاهده</a>
               <form method="POST" action="/admin/user/<%= u.user_code %>/delete" onsubmit="return confirm('کاربر حذف شود؟');">

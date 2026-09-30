@@ -1,0 +1,14 @@
+<%- include('../partials/header') %>
+<div class="page-title">
+  <h1>تنظیمات دفتر / ارتباط با ما</h1>
+  <a class="btn btn-ghost" href="/admin">← داشبورد</a>
+</div>
+<form method="POST" action="/admin/settings" class="panel stack" style="max-width:560px">
+  <div><label class="label">تلفن</label><input class="input ltr-num" dir="ltr" name="phone" value="<%= settings.phone %>"></div>
+  <div><label class="label">واتساپ</label><input class="input ltr-num" dir="ltr" name="whatsapp" value="<%= settings.whatsapp %>"></div>
+  <div><label class="label">آدرس</label><textarea class="input" name="address" rows="3"><%= settings.address %></textarea></div>
+  <div><label class="label">لینک نقشه</label><input class="input ltr-num" dir="ltr" name="map_url" value="<%= settings.map_url %>"></div>
+  <div><label class="label">یادداشت</label><input class="input" name="office_note" value="<%= settings.office_note %>"></div>
+  <button class="btn btn-gold" type="submit">ذخیره</button>
+</form>
+<%- include('../partials/footer') %>

@@ -1,66 +1,65 @@
 <%- include('../partials/header') %>
-<div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-6">
-  <h1 class="text-2xl font-bold mb-2">اعلامیه دریافت درام نقدی</h1>
-  <p class="text-sm text-gray-600 mb-6">
-    پس از آپلود رسید واریز، این اعلامیه را تکمیل کنید. سپس ادمین زمان مراجعه حضوری را اعلام خواهد کرد.
+<div class="panel stack" style="max-width:700px;margin:1rem auto">
+  <h1 style="margin:0;font-size:1.25rem">اعلامیه واریز و دریافت درام</h1>
+  <% if (typeof error !== 'undefined' && error) { %><div class="alert"><%= error %></div><% } %>
+  <p class="muted">سفارش <code><%= tx.transaction_code %></code> —
+    <%= Number(tx.amount_from).toLocaleString() %> <%= tx.from_currency %>
+    ≈ <%= Number(tx.amount_to).toLocaleString() %> <%= tx.to_currency %>
   </p>
 
-  <% if (error) { %>
-    <div class="bg-red-100 text-red-700 p-3 rounded mb-4"><%= error %></div>
-  <% } %>
-
-  <div class="bg-blue-50 rounded-lg p-3 mb-6 text-sm">
-    <p>سفارش: <strong class="font-mono"><%= tx.transaction_code %></strong></p>
-    <p>مبلغ واریزی: <strong><%= Number(tx.amount_from).toLocaleString() %> <%= tx.from_currency %></strong></p>
-    <p>معادل دریافتی: <strong><%= Number(tx.amount_to).toLocaleString() %> <%= tx.to_currency %></strong></p>
-    <% if (bank) { %>
-    <p class="mt-1">واریز به: <%= bank.bank_name %> — <%= bank.account_holder %> — <span class="font-mono"><%= bank.card_number || bank.shaba %></span></p>
-    <% } %>
-  </div>
-
-  <form method="POST" action="/order/<%= tx.transaction_code %>/declaration" class="space-y-4">
-    <div>
-      <label class="block text-sm mb-1 font-medium">شماره ملی *</label>
-      <input type="text" name="national_id" required maxlength="20"
-             class="w-full border rounded-lg px-3 py-2 font-mono" placeholder="کد ملی ۱۰ رقمی">
+  <form method="POST" action="/order/<%= tx.transaction_code %>/declaration" class="stack" autocomplete="off">
+    <div class="box-card">
+      <h3>۱) اینجانب</h3>
+      <input class="input" type="text" name="declarant_name" required
+             value="<%= user.first_name %> <%= user.last_name %>">
+      <p class="muted" style="font-size:0.75rem;margin:0.35rem 0 0">باید دقیقاً با نام ثبت‌نام یکی باشد</p>
+    </div>
+    <div class="box-card">
+      <h3>۲) کد ملی</h3>
+      <input class="input ltr-num" type="text" name="national_id" required dir="ltr" inputmode="numeric">
+    </div>
+    <div class="box-card">
+      <h3>۳) تاریخ واریز تومان</h3>
+      <label class="label">میلادی</label>
+      <input class="input" type="date" name="deposit_date_g" id="dep-g" onchange="document.getElementById('dep-t').value=this.value">
+      <label class="label" style="margin-top:0.4rem">یا متن / شمسی</label>
+      <input class="input" type="text" name="deposit_date" id="dep-t" required placeholder="۱۴۰۴/۰۷/۱۰ یا 2026-10-01">
+    </div>
+    <div class="box-card">
+      <h3>۴) از حساب آقا/خانم (صاحب حساب مبدأ)</h3>
+      <input class="input" type="text" name="from_account_name" required>
+      <label class="label" style="margin-top:0.5rem">از بانک</label>
+      <input class="input" type="text" name="from_bank" required>
+    </div>
+    <div class="box-card">
+      <h3>۵) به حساب مقصد</h3>
+      <label class="label">شماره کارت یا شبا</label>
+      <input class="input ltr-num" type="text" name="to_card_or_sheba" required dir="ltr"
+             value="<%= bank ? (bank.card_number || bank.shaba || '') : '' %>">
+      <label class="label" style="margin-top:0.5rem">به نام</label>
+      <input class="input" type="text" name="to_account_name" required value="<%= bank ? (bank.account_holder || '') : '' %>">
+      <label class="label" style="margin-top:0.5rem">در بانک</label>
+      <input class="input" type="text" name="to_bank" required value="<%= bank ? bank.bank_name : (tx.bank_name || '') %>">
+    </div>
+    <div class="box-card">
+      <h3>شماره رهگیری رسید واریز بانکی</h3>
+      <input class="input ltr-num" type="text" name="tracking_number" dir="ltr" placeholder="شماره پیگیری بانک">
     </div>
 
-    <div>
-      <label class="block text-sm mb-1 font-medium">تاریخ واریز (تومان) *</label>
-      <input type="date" name="deposit_date" required class="w-full border rounded-lg px-3 py-2">
+    <div class="box-card office-only">
+      <h3>۶) فقط در دفتر (توسط ادمین / امضای حضوری)</h3>
+      <p class="muted">این بخش در سایت توسط مشتری پر نمی‌شود. هنگام حضور در دفتر تکمیل و امضا می‌شود.</p>
+      <label class="label">نام دریافت‌کننده</label>
+      <input class="input" disabled placeholder="................">
+      <label class="label" style="margin-top:0.4rem">تاریخ دریافت و امضاء دریافت‌کننده</label>
+      <input class="input" disabled placeholder="................">
     </div>
 
-    <div>
-      <label class="block text-sm mb-1 font-medium">از حساب خانم/آقا (نام صاحب حساب مبدأ) *</label>
-      <input type="text" name="from_account_name" required class="w-full border rounded-lg px-3 py-2"
-             placeholder="نام صاحب حسابی که از آن واریز کرده‌اید">
+    <div class="panel" style="font-size:0.9rem;line-height:1.9;background:rgba(232,197,71,0.08)">
+      اینجانب <b><%= user.first_name %> <%= user.last_name %></b> در صحت و سلامت عقل اعلام می‌دارم، تمام دعاوی، مشکلات و دعواهای پس از این واریزی به عهده شخص دریافت‌کننده درام خواهد بود و مسئولیتی متوجه صاحب حساب نخواهد بود.
     </div>
 
-    <div>
-      <label class="block text-sm mb-1 font-medium">نام واریزکننده و تاریخ روز واریز *</label>
-      <input type="text" name="depositor_name_date" required class="w-full border rounded-lg px-3 py-2"
-             placeholder="مثلاً: علی محمدی — ۱۴۰۴/۰۶/۰۵">
-    </div>
-
-    <div>
-      <label class="block text-sm mb-1 font-medium">شماره رهگیری رسید واریزی *</label>
-      <input type="text" name="tracking_number" required class="w-full border rounded-lg px-3 py-2 font-mono"
-             placeholder="شماره پیگیری بانکی">
-    </div>
-
-    <div>
-      <label class="block text-sm mb-1 font-medium">تاریخ دریافت مبلغ (درام) *</label>
-      <input type="date" name="receive_date" required class="w-full border rounded-lg px-3 py-2">
-      <p class="text-xs text-gray-500 mt-1">معمولاً همان روز مراجعه حضوری یا تاریخ توافقی</p>
-    </div>
-
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-gray-700 leading-relaxed">
-      با ثبت این فرم اعلام می‌دارید که مبلغ را واریز کرده و معادل درام را به‌صورت نقد دریافت می‌نمایید و تمام دعاوی، مشکلات و اختلافات بعدی به عهده اینجانب می‌باشد.
-    </div>
-
-    <button type="submit" class="w-full bg-amber-600 text-white py-3 rounded-lg hover:bg-amber-700 font-medium">
-      ثبت اعلامیه و دریافت رسید
-    </button>
+    <button class="btn btn-gold" type="submit" style="width:100%">ثبت اعلامیه</button>
   </form>
 </div>
 <%- include('../partials/footer') %>

@@ -3,11 +3,14 @@
   <div class="panel auth-card stack">
     <h1 style="margin:0;text-align:center;font-size:1.4rem"><%= t('login') %></h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
-    <form method="POST" action="/login" class="stack">
+    <form method="POST" action="/login" class="stack" data-phone-combine autocomplete="off">
       <div>
-        <label class="label">شماره تماس ارمنی</label>
-        <input class="input" type="text" name="phone_am" required placeholder="+374XXXXXXXX" inputmode="tel">
-        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">همان شماره‌ای که با آن ثبت‌نام کردید</p>
+        <label class="label">شماره تماس</label>
+        <div style="display:flex;gap:0.4rem">
+          <select id="cc-login" data-cc class="input" style="max-width:9rem"></select>
+          <input id="login-local" data-local class="input" type="tel" required placeholder="XXXXXXXX" inputmode="tel" dir="ltr">
+        </div>
+        <input type="hidden" name="phone_am" data-full value="">
       </div>
       <div>
         <label class="label"><%= t('password') %></label>

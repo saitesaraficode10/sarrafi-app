@@ -1,31 +1,42 @@
 <%- include('partials/header') %>
-
 <section class="fx-hero">
-  <div class="fx-badge"><span class="dot"></span> نرخ‌های زنده و قابل معامله</div>
+  <div class="fx-badge"><span class="dot"></span> Live rates / نرخ‌های زنده</div>
   <h1><%= t('welcome') %></h1>
-  <p><%= t('rates') %> — درام، دلار، تومان، تتر و روبل با امکان تغییر دستی توسط صرافی</p>
+  <p>Exchange rates in FA & EN · نرخ تبدیل به فارسی و انگلیسی</p>
 </section>
+
+<div class="stats-bar">
+  <div class="stat-pill">آنلاین الان <b id="stat-online">—</b></div>
+  <div class="stat-pill">بازدید امروز <b id="stat-visits">—</b></div>
+  <div class="stat-pill">کاربران <b id="stat-users" data-count="<%= typeof userCount!=='undefined'?userCount:0 %>"><%= typeof userCount!=='undefined'?userCount:0 %></b></div>
+</div>
 
 <div class="rates-grid">
   <% rates.forEach(r => {
-    const [from, to] = r.pair.split('_');
+    const labels = {
+      USD_AMD: {fa:'دلار → درام', en:'USD → AMD'},
+      USDT_AMD: {fa:'تتر → درام', en:'USDT → AMD'},
+      IRR_AMD: {fa:'تومان → درام', en:'IRR/Toman → AMD'},
+      RUB_AMD: {fa:'روبل → درام', en:'RUB → AMD'}
+    };
+    const L = labels[r.pair] || {fa:r.pair, en:r.pair};
   %>
   <article class="rate-card">
     <div class="rate-pair">
-      <span><%= from %> → <%= to %></span>
-      <span class="chip"><%= r.source || 'live' %></span>
+      <span><%= L.fa %></span>
+      <span class="chip"><%= L.en %></span>
     </div>
     <div class="rate-row">
       <div class="rate-col">
-        <div class="rate-label buy"><%= t('buy') %></div>
+        <div class="rate-label buy"><%= t('buy') %> / Buy</div>
         <div class="rate-value"><%= Number(r.buy_rate).toLocaleString(undefined, { maximumFractionDigits: 6 }) %></div>
       </div>
       <div class="rate-col" style="text-align:end">
-        <div class="rate-label sell"><%= t('sell') %></div>
+        <div class="rate-label sell"><%= t('sell') %> / Sell</div>
         <div class="rate-value"><%= Number(r.sell_rate).toLocaleString(undefined, { maximumFractionDigits: 6 }) %></div>
       </div>
     </div>
-    <div class="rate-meta"><%= r.updated_at || '' %></div>
+    <div class="rate-meta"><%= r.pair %> · <%= r.updated_at || '' %></div>
   </article>
   <% }) %>
 </div>
@@ -33,7 +44,7 @@
 <% if (typeof user === 'undefined' || !user) { %>
 <section class="fx-cta">
   <h2>شروع معامله</h2>
-  <p>ثبت‌نام کنید، واریز انجام دهید و درام نقد یا حواله دریافت کنید</p>
+  <p>ثبت‌نام کنید، واریز انجام دهید و درام نقد دریافت کنید</p>
   <div class="fx-cta-actions">
     <a class="btn btn-gold" href="/register"><%= t('register') %></a>
     <a class="btn btn-ghost" href="/login"><%= t('login') %></a>
@@ -41,13 +52,11 @@
 </section>
 <% } else { %>
 <section class="fx-cta">
-  <h2>سلام <%= user.full_name || '' %></h2>
-  <p>از داشبورد سفارش جدید ثبت کنید یا وضعیت تراکنش‌ها را ببینید</p>
+  <h2>سلام <%= user.first_name || '' %></h2>
   <div class="fx-cta-actions">
     <a class="btn btn-gold" href="/new-order"><%= t('new_order') %></a>
     <a class="btn btn-ghost" href="/dashboard"><%= t('dashboard') %></a>
   </div>
 </section>
 <% } %>
-
 <%- include('partials/footer') %>

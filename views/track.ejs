@@ -1,0 +1,28 @@
+<%- include('partials/header') %>
+<div class="panel stack" style="max-width:520px;margin:1rem auto">
+  <h1 style="margin:0">پیگیری سفارش / کد</h1>
+  <form method="POST" action="/track" class="stack">
+    <input class="input ltr-num" dir="ltr" name="code" value="<%= code || '' %>" placeholder="TX... یا کد تحویل درام" required>
+    <button class="btn btn-gold" type="submit">پیگیری</button>
+  </form>
+  <% if (result) { %>
+    <div class="box-card">
+      <div>کد: <b class="ltr-num" dir="ltr"><%= result.code %></b></div>
+      <div style="margin-top:0.4rem">وضعیت:
+        <span class="status-badge <%= result.status==='rejected'?'st-reject':(result.status==='completed'?'st-done':(result.status==='ready_pickup'?'st-ready':'st-review')) %>">
+          <%= statusLabel(result.status) %>
+        </span>
+      </div>
+      <% if (result.office_date || result.office_time || result.office_address) { %>
+        <div style="margin-top:0.6rem;line-height:1.8">
+          <div>📅 تاریخ حضور: <%= result.office_date || '—' %></div>
+          <div>⏰ ساعت: <%= result.office_time || result.pickup_time || '—' %></div>
+          <div>📍 آدرس: <%= result.office_address || '—' %></div>
+        </div>
+      <% } %>
+    </div>
+  <% } else if (code) { %>
+    <div class="alert">کدی یافت نشد</div>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

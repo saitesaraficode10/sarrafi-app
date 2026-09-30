@@ -3,101 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>اعلامیه دریافت درام — <%= tx.transaction_code %></title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>اعلامیه واریز</title>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
   <style>
-    body { font-family: Vazirmatn, system-ui, sans-serif; }
-    .field-line {
-      display: inline-block;
-      min-width: 7.5rem;
-      border-bottom: 1px solid #222;
-      padding: 0 0.45rem 0.12rem;
-      margin: 0 0.2rem;
-      text-align: center;
-      font-weight: 700;
-    }
-    .field-line.wide { min-width: 11rem; }
-    .field-line.xwide { min-width: 15rem; }
-    @media print {
-      .no-print { display: none !important; }
-      body { background: white; }
-      .receipt-box { box-shadow: none !important; border: 1px solid #111; }
-    }
+    body{font-family:Vazirmatn,sans-serif;background:#f3f4f6;margin:0;padding:1.25rem}
+    .box{max-width:760px;margin:0 auto;background:#fff;border:2px solid #222;border-radius:12px;padding:1.5rem;line-height:2.2}
+    .field{display:inline-block;min-width:3.5rem;border-bottom:1px solid #111;padding:0 .3rem}
+    .ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+    .sec{border:1px solid #ccc;border-radius:10px;padding:.85rem;margin:.7rem 0}
+    .sec h3{margin:0 0 .4rem;font-size:.95rem}
+    .office{border-style:dashed;background:#fafafa;min-height:7rem}
+    .actions{text-align:center;margin-bottom:1rem}
+    .actions a,.actions button{margin:0 .3rem;padding:.5rem 1rem;border:0;border-radius:8px;background:#1d4ed8;color:#fff;cursor:pointer;text-decoration:none}
+    @media print{.actions{display:none}body{background:#fff}}
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen py-8">
-  <div class="max-w-2xl mx-auto px-4">
-    <div class="no-print mb-4 flex gap-3 justify-center">
-      <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-        چاپ اعلامیه
-      </button>
-      <a href="/order/<%= tx.transaction_code %>" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
-        بازگشت به سفارش
-      </a>
+<body>
+  <div class="actions">
+    <button onclick="window.print()">چاپ اعلامیه</button>
+    <a href="/order/<%= tx.transaction_code %>">بازگشت</a>
+  </div>
+  <div class="box">
+    <h1 style="text-align:center;font-size:1.15rem;margin-top:0">اعلامیه واریز ریال و دریافت درام</h1>
+    <p style="text-align:center">کد سفارش: <b class="ltr"><%= tx.transaction_code %></b></p>
+
+    <div class="sec"><h3>۱) اینجانب</h3>
+      <span class="field"><%= tx.declarant_name || '' %></span>
+    </div>
+    <div class="sec"><h3>۲) کد ملی</h3>
+      <span class="field ltr"><%= tx.national_id %></span>
+    </div>
+    <div class="sec"><h3>۳) تاریخ واریز تومان</h3>
+      <span class="field"><%= tx.deposit_date %></span>
+      — مبلغ <b><%= Number(tx.amount_from).toLocaleString() %></b> تومان
+    </div>
+    <div class="sec"><h3>۴) مبدأ</h3>
+      از حساب آقا/خانم <span class="field"><%= tx.from_account_name %></span>
+      از بانک <span class="field"><%= tx.from_bank %></span>
+    </div>
+    <div class="sec"><h3>۵) مقصد</h3>
+      به حساب <span class="field ltr"><%= tx.to_card_or_sheba %></span>
+      به نام <span class="field"><%= tx.to_account_name %></span>
+      در بانک <span class="field"><%= tx.to_bank %></span>
     </div>
 
-    <div class="receipt-box bg-white rounded-xl shadow-lg p-8 border-2 border-gray-400">
-      <div class="text-center mb-6 border-b border-gray-300 pb-4">
-        <h1 class="text-xl font-bold">اعلامیه واریز ریال و دریافت درام نقدی</h1>
-        <p class="text-sm text-gray-500 mt-2">شماره سفارش: <span class="font-mono font-bold"><%= tx.transaction_code %></span></p>
-      </div>
-
-      <div class="leading-[2.45] text-[15px] text-justify mb-6">
-        <p>
-          بدین‌وسیله اینجانب
-          <span class="field-line wide"><%= tx.first_name %> <%= tx.last_name %></span>
-          به شماره ملی
-          <span class="field-line"><%= tx.national_id %></span>
-          اعلام می‌دارم که مبلغ
-          <span class="field-line wide"><%= Number(tx.amount_from).toLocaleString() %></span>
-          تومان در تاریخ
-          <span class="field-line"><%= tx.deposit_date %></span>
-          از حساب خانم/آقا
-          <span class="field-line wide"><%= tx.from_account_name %></span>
-          به کارت / حساب / شبای
-          <span class="field-line xwide font-mono"><%= bank ? (bank.card_number || bank.shaba || '—') : '—' %></span>
-          به نام
-          <span class="field-line wide"><%= bank ? bank.account_holder : '—' %></span>
-          در بانک
-          <span class="field-line wide"><%= bank ? bank.bank_name : (tx.bank_name || '—') %></span>
-          واریز کرده و معادل
-          <span class="field-line wide"><%= Number(tx.amount_to).toLocaleString() %></span>
-          درام را به‌صورت نقد دریافت نموده‌ام و تمام دعاوی، مشکلات و اختلافات بعدی به عهده اینجانب می‌باشد.
-        </p>
-      </div>
-
-      <div class="space-y-3 text-[15px] leading-9 mb-8">
-        <p>
-          نام واریزکننده و تاریخ روز واریز:
-          <span class="field-line xwide"><%= tx.depositor_name_date %></span>
-        </p>
-        <p>
-          شماره رهگیری رسید واریزی:
-          <span class="field-line wide font-mono"><%= tx.tracking_number %></span>
-        </p>
-        <p>
-          تاریخ دریافت مبلغ:
-          <span class="field-line"><%= tx.receive_date %></span>
-        </p>
-      </div>
-
-      <div class="mt-10 mb-4 flex justify-between items-end">
-        <div>
-          <p class="text-sm text-gray-600 mb-2">نام و امضاء دریافت‌کننده</p>
-          <div class="border-b border-gray-500 w-52 h-12"></div>
-          <p class="mt-3 font-bold text-center"><%= tx.first_name %> <%= tx.last_name %></p>
-        </div>
-        <div class="text-left text-sm text-gray-500">
-          <p>ثبت در سامانه:</p>
-          <p class="font-mono mt-1"><%= tx.updated_at || tx.created_at %></p>
-        </div>
-      </div>
-
-      <div class="mt-6 text-center text-xs text-gray-400 border-t pt-3">
-        این اعلامیه پس از تکمیل توسط متقاضی صادر شده و پیش از اعلام زمان مراجعه حضوری برای دریافت درام نقدی معتبر است.
-      </div>
+    <div class="sec">
+      <h3>شماره رهگیری رسید واریز بانکی</h3>
+      <span class="field ltr"><%= tx.tracking_number || '..................' %></span>
     </div>
+
+    <div class="sec office">
+      <h3>۶) بخش دفتر (حضور / امضاء)</h3>
+      <p>نام دریافت‌کننده: <span class="field" style="min-width:10rem"><%= tx.receiver_name || '..................' %></span></p>
+      <p>تاریخ دریافت و امضاء دریافت‌کننده: <span class="field" style="min-width:12rem"><%= tx.receive_sign_date || '..................' %></span></p>
+    </div>
+
+    <p style="text-align:justify;margin-top:1rem">
+      اینجانب <b><%= tx.declarant_name %></b> در صحت و سلامت عقل اعلام می‌دارم، تمام دعاوی، مشکلات و دعواهای پس از این واریزی به عهده شخص دریافت‌کننده درام خواهد بود و مسئولیتی متوجه صاحب حساب نخواهد بود.
+    </p>
+    <p>معادل درام: <b><%= Number(tx.amount_to).toLocaleString() %> <%= tx.to_currency %></b></p>
   </div>
 </body>
 </html>

@@ -3,7 +3,7 @@
   <div class="panel auth-card stack">
     <h1 style="margin:0;text-align:center;font-size:1.4rem"><%= t('register') %></h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
-    <form method="POST" action="/register" class="stack">
+    <form method="POST" action="/register" class="stack" data-phone-combine autocomplete="off">
       <div>
         <label class="label"><%= t('first_name') %> *</label>
         <input class="input" type="text" name="first_name" required>
@@ -13,13 +13,20 @@
         <input class="input" type="text" name="last_name" required>
       </div>
       <div>
-        <label class="label">شماره تماس ارمنی *</label>
-        <input class="input" type="text" name="phone_am" required placeholder="+374XXXXXXXX" inputmode="tel">
-        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">با همین شماره وارد می‌شوید</p>
+        <label class="label">شماره تماس *</label>
+        <div style="display:flex;gap:0.4rem">
+          <select id="cc-phone" data-cc class="input" style="max-width:9rem"></select>
+          <input id="phone-local" data-local class="input" type="tel" required placeholder="XXXXXXXX" inputmode="tel" dir="ltr">
+        </div>
+        <input type="hidden" name="phone_am" data-full value="">
       </div>
       <div>
-        <label class="label"><%= t('whatsapp') %></label>
-        <input class="input" type="text" name="whatsapp" placeholder="اختیاری">
+        <label class="label">واتساپ * (اجباری)</label>
+        <div style="display:flex;gap:0.4rem">
+          <select id="cc-wa" data-cc-wa class="input" style="max-width:9rem"></select>
+          <input id="wa-local" data-local-wa class="input" type="tel" required placeholder="XXXXXXXX" inputmode="tel" dir="ltr">
+        </div>
+        <input type="hidden" name="whatsapp" data-full-wa value="">
       </div>
       <div>
         <label class="label"><%= t('password') %> * (حداقل ۶)</label>
@@ -28,7 +35,7 @@
       <div>
         <label class="label">کد امنیتی: <b dir="ltr"><%= captchaQuestion %></b> = ؟ *</label>
         <input type="hidden" name="captcha_token" value="<%= captchaToken %>">
-        <input class="input" type="text" name="captcha_answer" required inputmode="numeric" placeholder="حاصل جمع">
+        <input class="input" type="text" name="captcha_answer" required inputmode="numeric">
       </div>
       <button type="submit" class="btn btn-gold" style="width:100%"><%= t('submit') %></button>
     </form>

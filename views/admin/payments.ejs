@@ -1,32 +1,31 @@
 <%- include('../partials/header') %>
-<div class="flex justify-between items-center mb-6">
-  <h1 class="text-2xl font-bold">اطلاعات حساب‌های واریز</h1>
-  <a href="/admin" class="text-blue-600">← داشبورد</a>
+<div class="page-title">
+  <h1>اطلاعات حساب‌های واریز</h1>
+  <a class="btn btn-ghost" href="/admin">← داشبورد</a>
 </div>
-<div class="space-y-4">
-  <% banks.forEach(b => { %>
-  <form method="POST" action="/admin/payments/update" class="bg-white rounded-xl shadow p-4 space-y-3">
-    <input type="hidden" name="id" value="<%= b.id %>">
-    <div class="font-bold"><%= b.bank_name %></div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <div>
-        <label class="text-xs">شماره کارت</label>
-        <input type="text" name="card_number" value="<%= b.card_number %>" class="w-full border rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="text-xs">شبا</label>
-        <input type="text" name="shaba" value="<%= b.shaba %>" class="w-full border rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="text-xs">صاحب حساب</label>
-        <input type="text" name="account_holder" value="<%= b.account_holder %>" class="w-full border rounded px-2 py-1">
-      </div>
-    </div>
-    <label class="flex items-center gap-2 text-sm">
-      <input type="checkbox" name="is_active" value="1" <%= b.is_active ? 'checked' : '' %>> فعال
-    </label>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded text-sm">ذخیره</button>
-  </form>
-  <% }) %>
-</div>
+<p class="muted">برای ویرایش، فیلد را کامل پاک کنید و دوباره بنویسید. شماره‌ها چپ‌به‌راست نمایش داده می‌شوند.</p>
+<% banks.forEach(b => { %>
+<form method="POST" action="/admin/payments/update" class="panel stack" style="margin-top:0.85rem" autocomplete="off">
+  <input type="hidden" name="id" value="<%= b.id %>">
+  <div style="font-weight:800;color:var(--gold)"><%= b.bank_name %></div>
+  <div>
+    <label class="label">شماره کارت</label>
+    <input class="input ltr-num" type="text" name="card_number" value="<%= b.card_number || '' %>"
+           autocomplete="off" inputmode="numeric" dir="ltr" placeholder="6037-xxxx-xxxx-xxxx">
+  </div>
+  <div>
+    <label class="label">شبا</label>
+    <input class="input ltr-num" type="text" name="shaba" value="<%= b.shaba || '' %>"
+           autocomplete="off" dir="ltr" placeholder="IR00...">
+  </div>
+  <div>
+    <label class="label">صاحب حساب</label>
+    <input class="input" type="text" name="account_holder" value="<%= b.account_holder || '' %>" autocomplete="off">
+  </div>
+  <label class="muted" style="display:flex;gap:0.4rem;align-items:center">
+    <input type="checkbox" name="is_active" value="1" <%= b.is_active ? 'checked' : '' %>> فعال
+  </label>
+  <button class="btn btn-gold" type="submit">ذخیره</button>
+</form>
+<% }) %>
 <%- include('../partials/footer') %>

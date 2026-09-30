@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body data-auth="<%= (typeof user !== 'undefined' && user) ? '1' : '0' %>">
 <header class="fx-nav">
   <div class="container fx-nav-inner">
     <a class="fx-brand" href="/">
@@ -17,6 +17,9 @@
     </a>
     <nav class="fx-links">
       <a href="/"><%= t('home') %></a>
+      <a href="/contact">ارتباط با ما</a>
+      <a href="/track">پیگیری</a>
+      <a href="/tools/date">تبدیل تاریخ</a>
       <% if (typeof user !== 'undefined' && user) { %>
         <a href="/dashboard"><%= t('dashboard') %></a>
         <a href="/new-order"><%= t('new_order') %></a>
