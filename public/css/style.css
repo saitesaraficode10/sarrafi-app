@@ -269,3 +269,62 @@ th { background: rgba(255,255,255,0.03); color: var(--muted); font-weight: 600; 
   display: grid; grid-template-columns: 110px 1fr 1fr auto; gap: 0.6rem; align-items: end;
 }
 @media (max-width: 700px) { .rate-edit { grid-template-columns: 1fr 1fr; } }
+
+/* Prevent RTL reversing of card/IBAN numbers */
+.ltr-num, input[name="card_number"], input[name="shaba"],
+input[name="to_card_or_sheba"], .card-num {
+  direction: ltr !important;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+input[name="card_number"], input[name="shaba"] {
+  background: rgba(0,0,0,0.35);
+}
+
+.stats-bar {
+  display:flex; flex-wrap:wrap; gap:0.6rem; justify-content:center;
+  margin: 0.5rem 0 1.25rem;
+}
+.stat-pill {
+  background: rgba(255,255,255,0.05); border:1px solid var(--line);
+  border-radius:999px; padding:0.4rem 0.85rem; font-size:0.8rem; color:var(--muted);
+}
+.stat-pill b { color: var(--gold2); margin-inline: 0.25rem; }
+
+.fx-chat {
+  position: fixed; bottom: 1rem; inset-inline-end: 1rem; z-index: 80;
+  width: min(340px, calc(100vw - 1.5rem));
+}
+.fx-chat-toggle {
+  margin-inline-start:auto; display:flex; align-items:center; gap:0.4rem;
+  background: linear-gradient(135deg,#e8c547,#c9a227); color:#1a1200;
+  border:0; border-radius:999px; padding:0.7rem 1rem; font-weight:800; cursor:pointer;
+  box-shadow: 0 12px 30px rgba(232,197,71,0.35);
+}
+.fx-chat-panel {
+  display:none; margin-bottom:0.5rem; background:#0d1526; border:1px solid var(--line);
+  border-radius:16px; overflow:hidden; box-shadow: var(--shadow);
+}
+.fx-chat-panel.open { display:block; }
+#fx-chat-log { height:220px; overflow:auto; padding:0.75rem; font-size:0.85rem; }
+.chat-u { background:rgba(232,197,71,0.15); padding:0.45rem 0.6rem; border-radius:10px; margin:0.35rem 0; }
+.chat-b { background:rgba(255,255,255,0.06); padding:0.45rem 0.6rem; border-radius:10px; margin:0.35rem 0; color:#cbd5e1; }
+.fx-chat-row { display:flex; gap:0.35rem; padding:0.5rem; border-top:1px solid var(--line); }
+.fx-chat-row input { flex:1; }
+
+.box-card {
+  border:1px solid rgba(232,197,71,0.25); border-radius:16px; padding:1rem;
+  background: rgba(255,255,255,0.03); margin-bottom:0.75rem;
+}
+.box-card h3 { margin:0 0 0.6rem; font-size:0.95rem; color:var(--gold2); }
+.office-only {
+  opacity:0.75; border-style:dashed; pointer-events:none; user-select:none;
+}
+.status-badge {
+  display:inline-block; padding:0.2rem 0.55rem; border-radius:999px; font-size:0.75rem; font-weight:700;
+}
+.st-pending { background:rgba(251,191,36,0.15); color:#fbbf24; }
+.st-review { background:rgba(56,189,248,0.15); color:#38bdf8; }
+.st-ready { background:rgba(52,211,153,0.15); color:#34d399; }
+.st-done { background:rgba(52,211,153,0.25); color:#6ee7b7; }
+.st-reject { background:rgba(251,113,133,0.15); color:#fb7185; }
