@@ -3,7 +3,7 @@
   <div class="panel auth-card stack">
     <h1 style="margin:0;text-align:center;font-size:1.4rem"><%= t('register') %></h1>
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
-    <form method="POST" action="/register" enctype="multipart/form-data" class="stack">
+    <form method="POST" action="/register" class="stack">
       <div>
         <label class="label"><%= t('first_name') %> *</label>
         <input class="input" type="text" name="first_name" required>
@@ -13,23 +13,26 @@
         <input class="input" type="text" name="last_name" required>
       </div>
       <div>
-        <label class="label"><%= t('phone') %> *</label>
-        <input class="input" type="text" name="phone_am" required placeholder="+374...">
+        <label class="label">شماره تماس ارمنی *</label>
+        <input class="input" type="text" name="phone_am" required placeholder="+374XXXXXXXX" inputmode="tel">
+        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">با همین شماره وارد می‌شوید</p>
       </div>
       <div>
         <label class="label"><%= t('whatsapp') %></label>
-        <input class="input" type="text" name="whatsapp">
+        <input class="input" type="text" name="whatsapp" placeholder="اختیاری">
       </div>
       <div>
-        <label class="label"><%= t('passport') %> *</label>
-        <input class="input" type="file" name="passport" accept="image/*,.pdf" required>
-      </div>
-      <div>
-        <label class="label"><%= t('password') %> *</label>
+        <label class="label"><%= t('password') %> * (حداقل ۶)</label>
         <input class="input" type="password" name="password" required minlength="6">
+      </div>
+      <div>
+        <label class="label">کد امنیتی: <b dir="ltr"><%= captchaQuestion %></b> = ؟ *</label>
+        <input type="hidden" name="captcha_token" value="<%= captchaToken %>">
+        <input class="input" type="text" name="captcha_answer" required inputmode="numeric" placeholder="حاصل جمع">
       </div>
       <button type="submit" class="btn btn-gold" style="width:100%"><%= t('submit') %></button>
     </form>
+    <p class="muted" style="text-align:center;margin:0">قبلاً ثبت‌نام کرده‌اید؟ <a href="/login" style="color:var(--gold)"><%= t('login') %></a></p>
   </div>
 </div>
 <%- include('partials/footer') %>
