@@ -1,29 +1,38 @@
 <%- include('../partials/header') %>
-<div class="max-w-lg mx-auto bg-white rounded-xl shadow-lg p-6">
-  <h1 class="text-2xl font-bold mb-6"><%= t('new_order') %></h1>
-  <% if (error) { %><div class="bg-red-100 text-red-700 p-3 rounded mb-4"><%= error %></div><% } %>
-  <form method="POST" action="/new-order" class="space-y-4">
+<div class="panel stack" style="max-width:520px;margin:1rem auto">
+  <h1 style="margin:0;font-size:1.3rem"><%= t('new_order') %></h1>
+  <% if (error) { %><div class="alert"><%= error %></div><% } %>
+  <form method="POST" action="/new-order" enctype="multipart/form-data" class="stack">
     <div>
-      <label class="block text-sm mb-1">جفت ارز</label>
-      <select name="pair" required class="w-full border rounded-lg px-3 py-2">
+      <label class="label">جفت ارز</label>
+      <select class="input" name="pair" required>
         <% rates.forEach(r => { %>
           <option value="<%= r.pair %>"><%= r.pair %> (فروش: <%= r.sell_rate %>)</option>
         <% }) %>
       </select>
     </div>
     <div>
-      <label class="block text-sm mb-1"><%= t('amount') %> (از ارز مبدا)</label>
-      <input type="number" name="amount_from" step="any" min="0.01" required class="w-full border rounded-lg px-3 py-2">
+      <label class="label"><%= t('amount') %> (ارز مبدا)</label>
+      <input class="input" type="number" name="amount_from" step="any" min="0.01" required>
     </div>
     <div>
-      <label class="block text-sm mb-1">بانک برای واریز</label>
-      <select name="bank_name" required class="w-full border rounded-lg px-3 py-2">
+      <label class="label">بانک برای واریز</label>
+      <select class="input" name="bank_name" required>
         <% banks.forEach(b => { %>
           <option value="<%= b.bank_name %>"><%= b.bank_name %></option>
         <% }) %>
       </select>
     </div>
-    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"><%= t('submit') %></button>
+    <div>
+      <label class="label">پاسپورت یا کارت اقامت ارمنستان <%= user.passport_path ? '(اختیاری — قبلاً آپلود شده)' : '*' %></label>
+      <input class="input" type="file" name="passport" accept="image/*,.pdf" <%= user.passport_path ? '' : 'required' %>>
+      <% if (user.passport_path) { %>
+        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">قبلاً فایل دارید. فقط در صورت نیاز فایل جدید بفرستید.</p>
+      <% } else { %>
+        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">برای اولین سفارش الزامی است</p>
+      <% } %>
+    </div>
+    <button type="submit" class="btn btn-gold" style="width:100%"><%= t('submit') %></button>
   </form>
 </div>
 <%- include('../partials/footer') %>
