@@ -1,27 +1,36 @@
 <%- include('../partials/header') %>
-<div class="flex justify-between items-center mb-6">
-  <h1 class="text-2xl font-bold">کاربران</h1>
-  <a href="/admin" class="text-blue-600">← داشبورد</a>
+<div class="page-title">
+  <h1>کاربران</h1>
+  <a class="btn btn-ghost" href="/admin">← داشبورد</a>
 </div>
-<form method="GET" class="mb-4 flex gap-2">
-  <input type="text" name="q" value="<%= q %>" placeholder="جستجو با کد، نام یا شماره..." class="border rounded-lg px-3 py-2 flex-1">
-  <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">جستجو</button>
+<form method="GET" class="panel" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+  <input class="input" style="flex:1;min-width:180px" type="text" name="q" value="<%= q || '' %>" placeholder="جستجو با کد، نام یا شماره...">
+  <button class="btn btn-gold" type="submit">جستجو</button>
 </form>
-<div class="overflow-x-auto bg-white rounded-xl shadow">
-  <table class="w-full text-sm">
-    <thead class="bg-gray-100"><tr>
-      <th class="p-3 text-right">کد</th><th class="p-3 text-right">نام</th><th class="p-3 text-right">تلفن</th><th class="p-3 text-right">تاریخ</th><th class="p-3"></th>
-    </tr></thead>
+<div class="table-wrap panel" style="padding:0">
+  <table>
+    <thead>
+      <tr><th>کد</th><th>نام</th><th>تلفن</th><th>تاریخ</th><th></th></tr>
+    </thead>
     <tbody>
-      <% users.forEach(u => { %>
-      <tr class="border-t">
-        <td class="p-3 font-mono font-bold"><%= u.user_code %></td>
-        <td class="p-3"><%= u.first_name %> <%= u.last_name %></td>
-        <td class="p-3"><%= u.phone_am %></td>
-        <td class="p-3"><%= u.created_at %></td>
-        <td class="p-3"><a href="/admin/user/<%= u.user_code %>" class="text-blue-600">مشاهده</a></td>
-      </tr>
-      <% }) %>
+      <% if (users && users.length) { %>
+        <% users.forEach(u => { %>
+          <tr>
+            <td><b style="color:var(--gold)"><%= u.user_code %></b></td>
+            <td><%= u.first_name %> <%= u.last_name %></td>
+            <td><%= u.phone_am %></td>
+            <td class="muted"><%= u.created_at %></td>
+            <td style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              <a class="btn btn-soft" style="padding:0.3rem 0.7rem" href="/admin/user/<%= u.user_code %>">مشاهده</a>
+              <form method="POST" action="/admin/user/<%= u.user_code %>/delete" onsubmit="return confirm('کاربر حذف شود؟');">
+                <button class="btn btn-ghost" style="padding:0.3rem 0.7rem;color:#fb7185" type="submit">حذف</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="5" class="muted" style="text-align:center;padding:1.5rem">کاربری نیست</td></tr>
+      <% } %>
     </tbody>
   </table>
 </div>
