@@ -1,35 +1,44 @@
 <%- include('../partials/header') %>
 <div class="page-title">
-  <h1>مدیریت نرخ‌ها (دستی)</h1>
+  <h1>مدیریت نرخ‌ها</h1>
   <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
     <form method="POST" action="/admin/rates/refresh">
-      <button class="btn btn-soft" type="submit">به‌روزرسانی از API</button>
+      <button class="btn btn-soft" type="submit">API</button>
     </form>
     <a class="btn btn-ghost" href="/admin">← داشبورد</a>
   </div>
 </div>
-<p class="muted">هر نرخ را دستی ذخیره کنید. بعد از ذخیره دستی، آن جفت از API عوض نمی‌شود تا دوباره Refresh بزنید.</p>
+<% if (typeof ok !== 'undefined' && ok) { %>
+  <div class="alert" style="background:rgba(52,211,153,0.12);color:#6ee7b7;border-color:rgba(52,211,153,0.3)">ذخیره شد ✓</div>
+<% } %>
+<p class="muted">هر ردیف فقط یک جهت است. مثال: IRR→AMD خرید ۲۱۵ / فروش ۲۰۰</p>
 
 <% rates.forEach(r => { %>
-<form method="POST" action="/admin/rates/update" class="panel rate-edit" style="margin-top:0.75rem">
+<form method="POST" action="/admin/rates/update" class="panel" style="margin-top:0.75rem">
   <input type="hidden" name="pair" value="<%= r.pair %>">
-  <div>
-    <div class="label">جفت</div>
-    <div style="font-weight:800;font-family:monospace"><%= r.pair %></div>
-  </div>
-  <div>
-    <label class="label">خرید</label>
-    <input class="input" type="number" step="any" name="buy_rate" value="<%= r.buy_rate %>">
-  </div>
-  <div>
-    <label class="label">فروش</label>
-    <input class="input" type="number" step="any" name="sell_rate" value="<%= r.sell_rate %>">
-  </div>
-  <div>
-    <button class="btn btn-gold" type="submit">ذخیره دستی</button>
-    <div class="muted" style="font-size:0.75rem;margin-top:0.35rem">
-      <%= r.source %> · <%= r.is_manual ? 'دستی' : 'API' %>
+  <div style="display:flex;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.6rem">
+    <div style="font-weight:800;color:var(--gold);font-family:monospace"><%= r.pair %></div>
+    <div class="muted" style="font-size:0.8rem">
+      <% if (r.pair==='USD_AMD') { %>دلار → درام
+      <% } else if (r.pair==='USDT_AMD') { %>تتر → درام
+      <% } else if (r.pair==='IRR_AMD') { %>تومان → درام
+      <% } else if (r.pair==='RUB_AMD') { %>روبل → درام
+      <% } %>
     </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem">
+    <div>
+      <label class="label">خرید (Buy)</label>
+      <input class="input" type="number" step="any" name="buy_rate" value="<%= r.buy_rate %>" required>
+    </div>
+    <div>
+      <label class="label">فروش (Sell)</label>
+      <input class="input" type="number" step="any" name="sell_rate" value="<%= r.sell_rate %>" required>
+    </div>
+  </div>
+  <div style="margin-top:0.75rem;display:flex;justify-content:space-between;align-items:center">
+    <span class="muted" style="font-size:0.75rem"><%= r.is_manual ? 'دستی' : (r.source || '') %></span>
+    <button class="btn btn-gold" type="submit">ذخیره</button>
   </div>
 </form>
 <% }) %>

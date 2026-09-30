@@ -15,7 +15,7 @@
       <div>
         <label class="label">شماره تماس ارمنی *</label>
         <input class="input" type="text" name="phone_am" required placeholder="+374XXXXXXXX" inputmode="tel">
-        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">با همین شماره وارد حساب می‌شوید</p>
+        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">با همین شماره وارد می‌شوید</p>
       </div>
       <div>
         <label class="label"><%= t('whatsapp') %></label>
@@ -25,9 +25,14 @@
         <label class="label"><%= t('password') %> * (حداقل ۶)</label>
         <input class="input" type="password" name="password" required minlength="6">
       </div>
+      <div>
+        <label class="label">کد امنیتی: <b dir="ltr"><%= captchaQuestion %></b> = ؟ *</label>
+        <input type="hidden" name="captcha_token" value="<%= captchaToken %>">
+        <input class="input" type="text" name="captcha_answer" required inputmode="numeric" placeholder="حاصل جمع">
+      </div>
       <button type="submit" class="btn btn-gold" style="width:100%"><%= t('submit') %></button>
     </form>
-    <p class="muted" style="text-align:center;margin:0">پاسپورت در مرحله ثبت سفارش گرفته می‌شود</p>
+    <p class="muted" style="text-align:center;margin:0">قبلاً ثبت‌نام کرده‌اید؟ <a href="/login" style="color:var(--gold)"><%= t('login') %></a></p>
   </div>
 </div>
 <%- include('partials/footer') %>
