@@ -92,14 +92,10 @@ db.exec(`
 
 // Seed default rates
 const defaultRates = [
-  { pair: 'USD_AMD', buy: 390, sell: 395 },
-  { pair: 'AMD_USD', buy: 0.00253, sell: 0.00256 },
-  { pair: 'AMD_IRR', buy: 3700, sell: 3800 },
-  { pair: 'IRR_AMD', buy: 0.000263, sell: 0.000270 },
-  { pair: 'USDT_AMD', buy: 388, sell: 393 },
-  { pair: 'AMD_USDT', buy: 0.00254, sell: 0.00258 },
-  { pair: 'RUB_AMD', buy: 4.1, sell: 4.3 },
-  { pair: 'AMD_RUB', buy: 0.232, sell: 0.244 }
+  { pair: 'USD_AMD', buy: 355, sell: 360 },
+  { pair: 'USDT_AMD', buy: 350, sell: 358 },
+  { pair: 'IRR_AMD', buy: 215, sell: 200 },
+  { pair: 'RUB_AMD', buy: 4.1, sell: 4.3 }
 ];
 
 const insertRate = db.prepare(`
@@ -150,3 +146,18 @@ db.exec(`
 `);
 
 console.log('cash_in_orders table ensured');
+
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS otp_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  phone TEXT NOT NULL,
+  code TEXT NOT NULL,
+  purpose TEXT DEFAULT 'register',
+  expires_at TEXT NOT NULL,
+  used INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_otp_phone ON otp_codes(phone);
+`);
+console.log('OTP table ready');
