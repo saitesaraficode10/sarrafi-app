@@ -1,35 +1,53 @@
 <%- include('partials/header') %>
-<div class="text-center mb-8">
-  <h1 class="text-3xl font-bold text-blue-800 mb-2"><%= t('welcome') %></h1>
-  <p class="text-gray-600"><%= t('rates') %></p>
-</div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  <% rates.forEach(r => { 
+<section class="fx-hero">
+  <div class="fx-badge"><span class="dot"></span> نرخ‌های زنده و قابل معامله</div>
+  <h1><%= t('welcome') %></h1>
+  <p><%= t('rates') %> — درام، دلار، تومان، تتر و روبل با امکان تغییر دستی توسط صرافی</p>
+</section>
+
+<div class="rates-grid">
+  <% rates.forEach(r => {
     const [from, to] = r.pair.split('_');
   %>
-  <div class="bg-white rounded-xl shadow p-4 border border-blue-100">
-    <div class="text-sm text-gray-500 mb-1"><%= from %> → <%= to %></div>
-    <div class="flex justify-between items-center">
-      <div>
-        <div class="text-xs text-green-600"><%= t('buy') %></div>
-        <div class="font-bold text-lg"><%= Number(r.buy_rate).toLocaleString(undefined, {maximumFractionDigits: 6}) %></div>
+  <article class="rate-card">
+    <div class="rate-pair">
+      <span><%= from %> → <%= to %></span>
+      <span class="chip"><%= r.source || 'live' %></span>
+    </div>
+    <div class="rate-row">
+      <div class="rate-col">
+        <div class="rate-label buy"><%= t('buy') %></div>
+        <div class="rate-value"><%= Number(r.buy_rate).toLocaleString(undefined, { maximumFractionDigits: 6 }) %></div>
       </div>
-      <div class="text-left">
-        <div class="text-xs text-red-600"><%= t('sell') %></div>
-        <div class="font-bold text-lg"><%= Number(r.sell_rate).toLocaleString(undefined, {maximumFractionDigits: 6}) %></div>
+      <div class="rate-col" style="text-align:end">
+        <div class="rate-label sell"><%= t('sell') %></div>
+        <div class="rate-value"><%= Number(r.sell_rate).toLocaleString(undefined, { maximumFractionDigits: 6 }) %></div>
       </div>
     </div>
-    <div class="text-xs text-gray-400 mt-2">منبع: <%= r.source %> | <%= r.updated_at %></div>
-  </div>
+    <div class="rate-meta"><%= r.updated_at || '' %></div>
+  </article>
   <% }) %>
 </div>
 
-<div class="bg-blue-50 rounded-xl p-6 text-center">
-  <p class="mb-4">برای شروع معامله ثبت‌نام کنید یا وارد شوید</p>
-  <div class="flex justify-center gap-4">
-    <a href="/register" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"><%= t('register') %></a>
-    <a href="/login" class="bg-white border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50"><%= t('login') %></a>
+<% if (typeof user === 'undefined' || !user) { %>
+<section class="fx-cta">
+  <h2>شروع معامله</h2>
+  <p>ثبت‌نام کنید، واریز انجام دهید و درام نقد یا حواله دریافت کنید</p>
+  <div class="fx-cta-actions">
+    <a class="btn btn-gold" href="/register"><%= t('register') %></a>
+    <a class="btn btn-ghost" href="/login"><%= t('login') %></a>
   </div>
-</div>
+</section>
+<% } else { %>
+<section class="fx-cta">
+  <h2>سلام <%= user.full_name || '' %></h2>
+  <p>از داشبورد سفارش جدید ثبت کنید یا وضعیت تراکنش‌ها را ببینید</p>
+  <div class="fx-cta-actions">
+    <a class="btn btn-gold" href="/new-order"><%= t('new_order') %></a>
+    <a class="btn btn-ghost" href="/dashboard"><%= t('dashboard') %></a>
+  </div>
+</section>
+<% } %>
+
 <%- include('partials/footer') %>
