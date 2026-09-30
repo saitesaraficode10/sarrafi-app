@@ -5,8 +5,9 @@
     <% if (error) { %><div class="alert"><%= error %></div><% } %>
     <form method="POST" action="/login" class="stack">
       <div>
-        <label class="label"><%= t('phone') %></label>
-        <input class="input" type="text" name="phone_am" required placeholder="+374...">
+        <label class="label">شماره تماس ارمنی</label>
+        <input class="input" type="text" name="phone_am" required placeholder="+374XXXXXXXX" inputmode="tel">
+        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">همان شماره‌ای که با آن ثبت‌نام کردید</p>
       </div>
       <div>
         <label class="label"><%= t('password') %></label>
