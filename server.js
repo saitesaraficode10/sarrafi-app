@@ -542,55 +542,66 @@ app.post('/admin/cash-in/:code/update', authAdmin, (req, res) => {
 
 // Seed admins on start if needed
 function seedAdmins() {
-  const count = db.prepare('SELECT COUNT(*) as c FROM admins').get().c;
-  if (count === 0) {
-    // Already using env for login, optional DB seed
+  try {
+    const count = db.prepare('SELECT COUNT(*) as c FROM admins').get().c;
+    if (count === 0) {
+      // Login uses env credentials; DB table may stay empty
+    }
+  } catch (e) {
+    console.log('seedAdmins skip:', e.message);
   }
 }
 
 // Start
 async function start() {
-  // Init / migrate DB
-  if (!fs.existsSync(path.join(__dirname, 'db', 'sarrafi.db'))) {
+  // Always create/ensure all base tables
+  try {
     require('./utils/init-db');
-  } else {
-    // Ensure new tables exist
-    try {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS cash_in_orders (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          order_code TEXT UNIQUE NOT NULL,
-          user_id INTEGER NOT NULL,
-          amount_amd REAL NOT NULL,
-          amount_toman REAL NOT NULL,
-          delivery_date TEXT NOT NULL,
-          delivery_time TEXT NOT NULL,
-          iran_bank_name TEXT NOT NULL,
-          iran_account_holder TEXT NOT NULL,
-          iran_card_or_sheba TEXT NOT NULL,
-          status TEXT DEFAULT 'pending',
-          admin_note TEXT,
-          created_at TEXT DEFAULT (datetime('now')),
-          updated_at TEXT DEFAULT (datetime('now')),
-          FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-      `);
-      // declaration columns for transactions
-      const cols = db.prepare("PRAGMA table_info(transactions)").all().map(c => c.name);
-      const addCol = (name, type) => {
-        if (!cols.includes(name)) {
-          db.exec(`ALTER TABLE transactions ADD COLUMN ${name} ${type}`);
-        }
-      };
-      addCol('national_id', 'TEXT');
-      addCol('deposit_date', 'TEXT');
-      addCol('from_account_name', 'TEXT');
-      addCol('tracking_number', 'TEXT');
-      addCol('receive_date', 'TEXT');
-      addCol('depositor_name_date', 'TEXT');
-      addCol('declaration_filled', 'INTEGER DEFAULT 0');
-    } catch (e) { console.log('migrate:', e.message); }
+  } catch (e) {
+    console.log('init-db:', e.message);
   }
+
+  // Extra tables / columns (safe)
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS cash_in_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_code TEXT UNIQUE NOT NULL,
+        user_id INTEGER NOT NULL,
+        amount_amd REAL NOT NULL,
+        amount_toman REAL NOT NULL,
+        delivery_date TEXT NOT NULL,
+        delivery_time TEXT NOT NULL,
+        iran_bank_name TEXT NOT NULL,
+        iran_account_holder TEXT NOT NULL,
+        iran_card_or_sheba TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        admin_note TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+    `);
+  } catch (e) {
+    console.log('cash_in migrate:', e.message);
+  }
+
+  try {
+    const cols = db.prepare('PRAGMA table_info(transactions)').all().map(c => c.name);
+    const addCol = (name, type) => {
+      if (!cols.includes(name)) db.exec(`ALTER TABLE transactions ADD COLUMN ${name} ${type}`);
+    };
+    addCol('national_id', 'TEXT');
+    addCol('deposit_date', 'TEXT');
+    addCol('from_account_name', 'TEXT');
+    addCol('tracking_number', 'TEXT');
+    addCol('receive_date', 'TEXT');
+    addCol('depositor_name_date', 'TEXT');
+    addCol('declaration_filled', 'INTEGER DEFAULT 0');
+  } catch (e) {
+    console.log('transactions migrate:', e.message);
+  }
+
   seedAdmins();
   // Initial rates fetch
   try {
