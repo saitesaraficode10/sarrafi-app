@@ -2,16 +2,15 @@
 <div class="panel stack" style="max-width:700px;margin:1rem auto">
   <h1 style="margin:0;font-size:1.25rem">اعلامیه واریز و دریافت درام</h1>
   <% if (typeof error !== 'undefined' && error) { %><div class="alert"><%= error %></div><% } %>
-  <p class="muted">سفارش <code><%= tx.transaction_code %></code> —
-    <%= Number(tx.amount_from).toLocaleString() %> <%= tx.from_currency %>
-    ≈ <%= Number(tx.amount_to).toLocaleString() %> <%= tx.to_currency %>
+  <p class="muted">سفارش <code class="ltr-num" dir="ltr"><%= tx.transaction_code %></code> —
+    <b><%= typeof fmt==='function' ? fmt(tx.amount_from) : Number(tx.amount_from).toLocaleString() %></b> <%= tx.from_currency %>
+    ≈ <b><%= typeof fmt==='function' ? fmt(tx.amount_to) : Number(tx.amount_to).toLocaleString() %></b> <%= tx.to_currency %>
   </p>
 
   <form method="POST" action="/order/<%= tx.transaction_code %>/declaration" class="stack" autocomplete="off">
     <div class="box-card">
       <h3>۱) اینجانب</h3>
-      <input class="input" type="text" name="declarant_name" required
-             value="<%= user.first_name %> <%= user.last_name %>">
+      <input class="input" type="text" name="declarant_name" required value="<%= user.first_name %> <%= user.last_name %>">
       <p class="muted" style="font-size:0.75rem;margin:0.35rem 0 0">باید دقیقاً با نام ثبت‌نام یکی باشد</p>
     </div>
     <div class="box-card">
@@ -20,10 +19,9 @@
     </div>
     <div class="box-card">
       <h3>۳) تاریخ واریز تومان</h3>
-      <label class="label">میلادی</label>
-      <input class="input" type="date" name="deposit_date_g" id="dep-g" onchange="document.getElementById('dep-t').value=this.value">
-      <label class="label" style="margin-top:0.4rem">یا متن / شمسی</label>
-      <input class="input" type="text" name="deposit_date" id="dep-t" required placeholder="۱۴۰۴/۰۷/۱۰ یا 2026-10-01">
+      <label class="label">انتخاب تاریخ (میلادی)</label>
+      <input class="input" type="date" name="deposit_date" required style="direction:ltr">
+      <p class="muted" style="font-size:0.75rem;margin:0.35rem 0 0">فقط از تقویم انتخاب کنید — نیازی به تایپ دستی نیست</p>
     </div>
     <div class="box-card">
       <h3>۴) از حساب آقا/خانم (صاحب حساب مبدأ)</h3>
@@ -43,22 +41,21 @@
     </div>
     <div class="box-card">
       <h3>شماره رهگیری رسید واریز بانکی</h3>
-      <input class="input ltr-num" type="text" name="tracking_number" dir="ltr" placeholder="شماره پیگیری بانک">
+      <input class="input ltr-num" type="text" name="tracking_number" dir="ltr">
     </div>
 
     <div class="box-card office-only">
-      <h3>۶) فقط در دفتر (توسط ادمین / امضای حضوری)</h3>
-      <p class="muted">این بخش در سایت توسط مشتری پر نمی‌شود. هنگام حضور در دفتر تکمیل و امضا می‌شود.</p>
+      <h3>۶) فقط در دفتر (ادمین / امضای حضوری)</h3>
+      <p class="muted">مشتری این بخش را در سایت پر نمی‌کند.</p>
       <label class="label">نام دریافت‌کننده</label>
       <input class="input" disabled placeholder="................">
-      <label class="label" style="margin-top:0.4rem">تاریخ دریافت و امضاء دریافت‌کننده</label>
+      <label class="label" style="margin-top:0.4rem">تاریخ دریافت و امضاء</label>
       <input class="input" disabled placeholder="................">
     </div>
 
     <div class="panel" style="font-size:0.9rem;line-height:1.9;background:rgba(232,197,71,0.08)">
       اینجانب <b><%= user.first_name %> <%= user.last_name %></b> در صحت و سلامت عقل اعلام می‌دارم، تمام دعاوی، مشکلات و دعواهای پس از این واریزی به عهده شخص دریافت‌کننده درام خواهد بود و مسئولیتی متوجه صاحب حساب نخواهد بود.
     </div>
-
     <button class="btn btn-gold" type="submit" style="width:100%">ثبت اعلامیه</button>
   </form>
 </div>

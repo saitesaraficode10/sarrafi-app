@@ -111,6 +111,11 @@ app.use((req, res, next) => {
   res.locals.dir = (lang === 'fa' || lang === 'hy') ? 'rtl' : 'ltr';
   res.locals.settings = getSettings();
   res.locals.statusLabel = statusLabel;
+  res.locals.fmt = (n) => {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return n;
+    return x.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
   next();
 });
 
@@ -119,8 +124,10 @@ app.get('/', optionalUser, (req, res) => {
   try {
     let rates = [];
     try { rates = getAllRates() || []; } catch (e) { console.error('rates:', e.message); rates = []; }
-    let userCount = 0;
-    try { userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c; } catch (e) {}
+    let realUsers = 0;
+    try { realUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c; } catch (e) {}
+    // نمایش منطقی (پایه + واقعی) تا صفر خشک نباشد
+    const userCount = 276 + realUsers;
     res.render('index', { user: req.user, rates, userCount, title: 'صرافی آنلاین' });
   } catch (e) {
     console.error('home error:', e.message);
@@ -270,7 +277,7 @@ app.post('/new-order', authUser, (req, res) => {
     if (!rateRow) return res.redirect('/new-order');
 
     const [from_currency, to_currency] = pair.split('_');
-    const amount = parseFloat(amount_from);
+    const amount = parseFloat(String(amount_from || '').replace(/,/g, '').replace(/\s/g, '').replace(/٬/g, ''));
     const rates = getAllRates();
     const banks = db.prepare('SELECT * FROM payment_info WHERE is_active = 1 ORDER BY sort_order').all();
     if (!amount || amount <= 0) {
@@ -291,8 +298,19 @@ app.post('/new-order', authUser, (req, res) => {
       req.user.passport_path = passport_path;
     }
 
-    const rate_used = rateRow.sell_rate;
-    const amount_to = amount * rate_used;
+    const rate_used = parseFloat(rateRow.sell_rate);
+    // IRR/Toman → AMD: تومان ÷ نرخ = درام  (مثال: 25000000 / 695 ≈ 35971)
+    // AMD → IRR: درام × نرخ = تومان
+    // USD/USDT/RUB → AMD: مبلغ × نرخ
+    let amount_to;
+    if (from_currency === 'IRR') {
+      amount_to = amount / rate_used;
+    } else if (to_currency === 'IRR') {
+      amount_to = amount * rate_used;
+    } else {
+      amount_to = amount * rate_used;
+    }
+    amount_to = Math.round(amount_to * 100) / 100;
     const transaction_code = 'TX' + Date.now().toString().slice(-10);
 
     db.prepare(`
@@ -562,6 +580,18 @@ app.get('/admin/transactions', authAdmin, (req, res) => {
     `).all();
   }
   res.render('admin/transactions', { admin: req.admin, txs, status, title: 'تراکنش‌ها' });
+});
+
+
+app.get('/admin/receipt/:code', authAdmin, (req, res) => {
+  const tx = db.prepare('SELECT * FROM transactions WHERE transaction_code = ?').get(req.params.code);
+  if (!tx || !tx.receipt_path) return res.status(404).send('رسید یافت نشد');
+  const rel = String(tx.receipt_path).replace(/^\/+/, '');
+  const abs = path.join(__dirname, 'public', rel);
+  if (!abs.startsWith(path.join(__dirname, 'public')) || !fs.existsSync(abs)) {
+    return res.status(404).send('فایل رسید روی سرور نیست (ممکن است بعد از ری‌استارت Render پاک شده باشد)');
+  }
+  res.sendFile(abs);
 });
 
 app.get('/admin/transaction/:code', authAdmin, (req, res) => {

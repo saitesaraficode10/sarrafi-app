@@ -9,8 +9,8 @@
   </div>
   <div class="muted" style="font-size:0.9rem;line-height:1.8">
     <div>جفت: <%= tx.pair %> · نرخ: <%= tx.rate_used %></div>
-    <div>پرداختی: <%= Number(tx.amount_from).toLocaleString() %> <%= tx.from_currency %></div>
-    <div>دریافتی: <%= Number(tx.amount_to).toLocaleString() %> <%= tx.to_currency %></div>
+    <div>پرداختی: <%= typeof fmt==='function' ? fmt(tx.amount_from) : Number(tx.amount_from).toLocaleString('en-US') %> <%= tx.from_currency %></div>
+    <div>دریافتی: <%= typeof fmt==='function' ? fmt(tx.amount_to) : Number(tx.amount_to).toLocaleString('en-US') %> <%= tx.to_currency %></div>
   </div>
 
   <% if (tx.office_date || tx.office_time || tx.office_address || tx.pickup_time) { %>

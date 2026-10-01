@@ -35,7 +35,7 @@
     </div>
     <div class="sec"><h3>۳) تاریخ واریز تومان</h3>
       <span class="field"><%= tx.deposit_date %></span>
-      — مبلغ <b><%= Number(tx.amount_from).toLocaleString() %></b> تومان
+      — مبلغ <b><%= Number(tx.amount_from).toLocaleString('en-US') %></b> تومان
     </div>
     <div class="sec"><h3>۴) مبدأ</h3>
       از حساب آقا/خانم <span class="field"><%= tx.from_account_name %></span>
@@ -61,7 +61,7 @@
     <p style="text-align:justify;margin-top:1rem">
       اینجانب <b><%= tx.declarant_name %></b> در صحت و سلامت عقل اعلام می‌دارم، تمام دعاوی، مشکلات و دعواهای پس از این واریزی به عهده شخص دریافت‌کننده درام خواهد بود و مسئولیتی متوجه صاحب حساب نخواهد بود.
     </p>
-    <p>معادل درام: <b><%= Number(tx.amount_to).toLocaleString() %> <%= tx.to_currency %></b></p>
+    <p>معادل درام: <b><%= Number(tx.amount_to).toLocaleString('en-US') %> <%= tx.to_currency %></b></p>
   </div>
 </body>
 </html>

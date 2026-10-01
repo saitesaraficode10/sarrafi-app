@@ -8,7 +8,7 @@
   <div>تلفن: <span class="ltr-num" dir="ltr"><%= tx.phone_am %></span> · واتساپ: <span class="ltr-num" dir="ltr"><%= tx.whatsapp %></span></div>
   <div><%= tx.pair %> · <%= Number(tx.amount_from).toLocaleString() %> → <%= Number(tx.amount_to).toLocaleString() %></div>
   <div>وضعیت: <b><%= statusLabel(tx.status) %></b></div>
-  <% if (tx.receipt_path) { %><div><a href="<%= tx.receipt_path %>" target="_blank" style="color:var(--gold)">مشاهده رسید آپلودشده</a></div><% } %>
+  <% if (tx.receipt_path) { %><div><a href="/admin/receipt/<%= tx.transaction_code %>" target="_blank" style="color:var(--gold)">مشاهده رسید آپلودشده</a></div><% } %>
   <% if (tx.declaration_filled) { %>
     <a class="btn btn-soft" href="/admin/transaction/<%= tx.transaction_code %>/print-declaration" target="_blank">چاپ اعلامیه (با بخش ۶ دفتر)</a>
   <% } %>
@@ -31,7 +31,7 @@
     <label class="label">تاریخ (میلادی)</label>
     <input class="input" type="date" name="office_date" value="<%= tx.office_date || '' %>">
     <label class="label">ساعت</label>
-    <input class="input" type="time" name="office_time" value="<%= tx.office_time || '' %>">
+    <input class="input" type="time" name="office_time" value="<%= tx.office_time || '' %>" step="60" style="direction:ltr">
     <label class="label">آدرس دفتر</label>
     <input class="input" type="text" name="office_address" value="<%= tx.office_address || '' %>" placeholder="آدرس کامل">
     <label class="label">متن آزاد وقت (اختیاری)</label>

@@ -2,18 +2,30 @@
 <div class="panel stack" style="max-width:520px;margin:1rem auto">
   <h1 style="margin:0;font-size:1.3rem"><%= t('new_order') %></h1>
   <% if (error) { %><div class="alert"><%= error %></div><% } %>
-  <form method="POST" action="/new-order" enctype="multipart/form-data" class="stack">
+  <form method="POST" action="/new-order" enctype="multipart/form-data" class="stack" id="order-form">
     <div>
       <label class="label">جفت ارز</label>
-      <select class="input" name="pair" required>
+      <select class="input" name="pair" id="pair" required>
         <% rates.forEach(r => { %>
-          <option value="<%= r.pair %>"><%= r.pair %> (فروش: <%= r.sell_rate %>)</option>
+          <option value="<%= r.pair %>"
+            data-buy="<%= r.buy_rate %>"
+            data-sell="<%= r.sell_rate %>"
+            data-from="<%= r.pair.split('_')[0] %>"
+            data-to="<%= r.pair.split('_')[1] %>">
+            <%= r.pair %> — فروش: <%= Number(r.sell_rate).toLocaleString('en-US') %>
+          </option>
         <% }) %>
       </select>
     </div>
     <div>
-      <label class="label"><%= t('amount') %> (ارز مبدا)</label>
-      <input class="input" type="number" name="amount_from" step="any" min="0.01" required>
+      <label class="label">مبلغ (ارز مبدأ) *</label>
+      <input class="input ltr-num" type="text" id="amount_display" inputmode="decimal" dir="ltr" required placeholder="25,000,000">
+      <input type="hidden" name="amount_from" id="amount_from">
+      <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">می‌توانید با کاما بنویسید؛ سیستم عدد را می‌خواند</p>
+    </div>
+    <div class="box-card">
+      <h3>محاسبه تقریبی</h3>
+      <div id="calc-out" class="muted">جفت و مبلغ را وارد کنید</div>
     </div>
     <div>
       <label class="label">بانک برای واریز</label>
@@ -24,15 +36,56 @@
       </select>
     </div>
     <div>
-      <label class="label">پاسپورت یا کارت اقامت ارمنستان <%= user.passport_path ? '(اختیاری — قبلاً آپلود شده)' : '*' %></label>
+      <label class="label">پاسپورت یا کارت اقامت <%= user.passport_path ? '(اختیاری)' : '*' %></label>
       <input class="input" type="file" name="passport" accept="image/*,.pdf" <%= user.passport_path ? '' : 'required' %>>
-      <% if (user.passport_path) { %>
-        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">قبلاً فایل دارید. فقط در صورت نیاز فایل جدید بفرستید.</p>
-      <% } else { %>
-        <p class="muted" style="font-size:0.78rem;margin:0.3rem 0 0">برای اولین سفارش الزامی است</p>
-      <% } %>
     </div>
     <button type="submit" class="btn btn-gold" style="width:100%"><%= t('submit') %></button>
   </form>
 </div>
+<script>
+(function(){
+  function parseAmount(s){
+    if (!s) return NaN;
+    return parseFloat(String(s).replace(/,/g,'').replace(/\s/g,'').replace(/٬/g,''));
+  }
+  function fmt(n){
+    if (!Number.isFinite(n)) return '—';
+    return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  }
+  function recalc(){
+    const sel = document.getElementById('pair');
+    const opt = sel.options[sel.selectedIndex];
+    const rate = parseFloat(opt.dataset.sell);
+    const from = opt.dataset.from;
+    const to = opt.dataset.to;
+    const amount = parseAmount(document.getElementById('amount_display').value);
+    document.getElementById('amount_from').value = Number.isFinite(amount) ? amount : '';
+    const out = document.getElementById('calc-out');
+    if (!Number.isFinite(amount) || !rate) { out.textContent = 'جفت و مبلغ را وارد کنید'; return; }
+    let result;
+    let formula;
+    if (from === 'IRR') {
+      result = amount / rate;
+      formula = fmt(amount) + ' ÷ ' + fmt(rate) + ' = ' + fmt(result) + ' ' + to;
+    } else if (to === 'IRR') {
+      result = amount * rate;
+      formula = fmt(amount) + ' × ' + fmt(rate) + ' = ' + fmt(result) + ' ' + to;
+    } else {
+      result = amount * rate;
+      formula = fmt(amount) + ' × ' + fmt(rate) + ' = ' + fmt(result) + ' ' + to;
+    }
+    out.innerHTML = '<b>' + formula + '</b>';
+  }
+  document.getElementById('pair').addEventListener('change', recalc);
+  document.getElementById('amount_display').addEventListener('input', function(){
+    // optional live grouping
+    recalc();
+  });
+  document.getElementById('order-form').addEventListener('submit', function(){
+    const amount = parseAmount(document.getElementById('amount_display').value);
+    document.getElementById('amount_from').value = amount;
+  });
+  recalc();
+})();
+</script>
 <%- include('../partials/footer') %>
